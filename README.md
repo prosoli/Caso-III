@@ -21,3 +21,24 @@
 |  Carlos Abarca Mora       | `2024138701` |
 
 ---
+
+## 📖 Indice
+🌎 [Distribucion de los motores de base de datos](#distribucion-los-motores-de-base-de-datos)
+
+🌎 Diseño SQL
+
+🌎 Diseño Mongo DB
+
+🌎 Endpoints implementados por Stored Procedures
+
+🌎 Endpoints implementados por ORM
+
+🌎 DashBoard de consulta
+
+
+<details>
+  <summary>## Distribucion de los motores de base de datos</summary>
+
+  En construccion
+
+</details>
