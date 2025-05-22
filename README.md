@@ -23,7 +23,7 @@
 ---
 
 ## 📖 Indice
-🌎 [Distribucion de los motores de base de datos](#distribucion-los-motores-de-base-de-datos)
+🌎 [Distribucion de los motores de base de datos](#distribucion-de-los-motores-de-base-de-datos)
 
 🌎 Diseño SQL
 
