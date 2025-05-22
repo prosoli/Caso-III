@@ -35,10 +35,11 @@
 
 🌎 DashBoard de consulta
 
-
+---
+## Distribucion de los motores de base de datos
 <details>
-  <summary>## Distribucion de los motores de base de datos</summary>
+  <summary>Desplegar información</summary>
 
-  En construccion
+  En construcción
 
 </details>
