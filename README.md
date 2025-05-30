@@ -23,11 +23,9 @@
 ---
 
 ## 📖 Indice
-🌎 [Distribucion de los motores de base de datos](#distribucion-de-los-motores-de-base-de-datos)
+🌎 [Uso de los motores de base de datos](#uso-de-los-motores-de-base-de-datos)
 
 🌎 Diseño SQL
-
-🌎 Diseño Mongo DB
 
 🌎 Endpoints implementados por Stored Procedures
 
@@ -36,7 +34,7 @@
 🌎 DashBoard de consulta
 
 ---
-## Distribucion de los motores de base de datos
+## Uso de los motores de base de datos
 <details>
   <summary>Desplegar información</summary>
 
