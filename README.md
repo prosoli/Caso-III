@@ -27,6 +27,8 @@
 
 🌎 Diseño SQL
 
+🌎 [Implementación del API](#implementacion-del-api)
+
 🌎 Endpoints implementados por Stored Procedures
 
 🌎 Endpoints implementados por ORM
@@ -39,5 +41,26 @@
   <summary>Desplegar información</summary>
 
   En construcción
+
+</details>
+
+---
+## Implementación del API
+<details>
+  <summary>Desplegar información</summary>
+
+  <details>
+  <summary>Desplegar información</summary>
+
+  ### Endpoints implementados por Stored Procedures
+
+  </details>
+
+  <details>
+  <summary>Desplegar información</summary>
+
+  ### Endpoints implementados por ORM
+
+  </details>
 
 </details>
