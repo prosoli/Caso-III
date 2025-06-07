@@ -36,8 +36,13 @@
 🌎 DashBoard de consulta
 
 ---
-### Diseño SQL
+## Diseño SQL
+<details>
+  <summary>Desplegar información</summary>
 
+  En construcción
+
+</details>
 
 ## Uso de los motores de base de datos
 <details>
