@@ -25,7 +25,7 @@
 ## 📖 Indice
 🌎 [Uso de los motores de base de datos](#uso-de-los-motores-de-base-de-datos)
 
-🌎 Diseño SQL
+🌎 [Diseño SQL](#diseño-sql)
 
 🌎 [Implementación del API](#implementación-del-api)
 
@@ -36,6 +36,9 @@
 🌎 DashBoard de consulta
 
 ---
+### Diseño SQL
+
+
 ## Uso de los motores de base de datos
 <details>
   <summary>Desplegar información</summary>
