@@ -26,7 +26,7 @@
 
 🌎 [Ir al Diseño de Base de Datos](#diseño-sql)
 
-🌎 [Ir al Catalogo Base del sistema](#catalogo-base-del-sistema)
+🌎 [Ir a Catálogo Base del sistema](#catalogo-base-del-sistema)
 
 🌎 [Ir al Implementación del API](#implementación-del-api)
 
@@ -47,12 +47,13 @@ A continuación, se presenta el diseño físico de la base de datos, el cual ha 
 
 Por otro lado, se presenta el script de creación de la base de datos, con el cual se podrá generar la estructura completa del sistema, incluyendo tablas, relaciones, claves primarias y foráneas, así como restricciones necesarias para garantizar la integridad referencial y la organización lógica de los datos. Este script facilita la implementación del modelo en entornos de desarrollo, pruebas o producción.
 
-🔋[Script de creacion de la base de datos]()
+🗄️[Script de creacion de la base de datos]()
 
   <details>
-  <summary>Ver llenado de la vase de datos</summary>
-  ```sql
+  <summary>Ver llenado de la base de datos</summary>
 
+```sql
+    
       USE [puravidabd]
       GO
       /****** Object:  Table [dbo].[vpv_AllowedVoters]    Script Date: 7/6/2025 12:16:51 ******/
@@ -5016,14 +5017,15 @@ Por otro lado, se presenta el script de creación de la base de datos, con el cu
       EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'' , @level0type=N'SCHEMA',@level0name=N'dbo', @level1type=N'TABLE',@level1name=N'vpv_requestvalidators', @level2type=N'COLUMN',@level2name=N'enable'
       GO
 ```
-  </details>
+</details>
 </details>
 
 ---
 
 ## Catalogo Base del sistema
+Este catálogo incluye, entre otros, datos sobre nacionalidades, provincias, niveles educativos, áreas profesionales, tipos de filtro, unidades de medida, zonas de impacto, estados de votación, y otros elementos que forman parte del modelo de datos general.
 
-
+🔋[Ver llenado de la base de datos]()
  
 #### Tipos de vista
 
