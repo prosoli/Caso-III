@@ -5124,6 +5124,33 @@ VALUES
 ```
 </details>
 
+#### Beneficios de gobierno
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO [dbo].[vpv_governmentBenefits] ([benefit], [enable], [dataType])
+VALUES
+    ('Incentivo económico de la CCSS', 1, 'decimal'),
+    ('Subsidio mensual de vivienda', 1, 'decimal'),
+    ('Tener al menos 10 empleados en el proyecto', 1, 'integer'),
+    ('Número de adultos mayores beneficiados', 1, 'integer'),
+    ('Acceso gratuito a servicios de salud primaria', 1, 'bit'),
+    ('Participación en capacitaciones del INA', 1, 'bit'),
+    ('Descuento en servicios eléctricos del ICE', 1, 'decimal'),
+    ('Cantidad de estudiantes beneficiados por beca', 1, 'integer'),
+    ('Disponibilidad de servicio de transporte', 1, 'bit'),
+    ('Monto asignado por el MEP para materiales', 1, 'decimal'),
+    ('Alquiler subsidiado por el IMAS', 1, 'decimal'),
+    ('Participación en programa de salud preventiva', 1, 'bit'),
+    ('Cantidad de computadoras entregadas', 1, 'integer'),
+    ('Cobertura de seguro por el INS', 1, 'bit'),
+    ('Reducción de tarifas municipales', 1, 'decimal')
+
+```
+</details>
+
 ### Configuracion de la votacion
 
 ---
@@ -5371,32 +5398,7 @@ INSERT INTO [dbo].[vpv_statusVoting]
 </details>
 
   
-#### Beneficios de gobierno
 
-<details>
- <summary>Desplegar información</summary>
-  
-```sql
-INSERT INTO [dbo].[vpv_governmentBenefits] ([benefit], [enable], [dataType])
-VALUES
-    ('Incentivo económico de la CCSS', 1, 'decimal'),
-    ('Subsidio mensual de vivienda', 1, 'decimal'),
-    ('Tener al menos 10 empleados en el proyecto', 1, 'integer'),
-    ('Número de adultos mayores beneficiados', 1, 'integer'),
-    ('Acceso gratuito a servicios de salud primaria', 1, 'bit'),
-    ('Participación en capacitaciones del INA', 1, 'bit'),
-    ('Descuento en servicios eléctricos del ICE', 1, 'decimal'),
-    ('Cantidad de estudiantes beneficiados por beca', 1, 'integer'),
-    ('Disponibilidad de servicio de transporte', 1, 'bit'),
-    ('Monto asignado por el MEP para materiales', 1, 'decimal'),
-    ('Alquiler subsidiado por el IMAS', 1, 'decimal'),
-    ('Participación en programa de salud preventiva', 1, 'bit'),
-    ('Cantidad de computadoras entregadas', 1, 'integer'),
-    ('Cobertura de seguro por el INS', 1, 'bit'),
-    ('Reducción de tarifas municipales', 1, 'decimal')
-
-```
-</details>
 
 
 
