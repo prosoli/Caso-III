@@ -74,6 +74,7 @@ VALUES
 
 <details>
  <summary>Desplegar información</summary>
+  
 ```sql
 INSERT INTO [dbo].[vpv_proposalTypes] ([name], [description], [enable])
 VALUES
