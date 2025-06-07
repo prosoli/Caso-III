@@ -48,8 +48,11 @@
 
 ### Catalogo Base del sistema
 
+<details>
  <summary>Desplegar información</summary>
+ 
 #### Tipos de vista
+
 ```sql
 INSERT INTO [dbo].[vpv_proposalViewTypes] ([name], [enable])
 VALUES
