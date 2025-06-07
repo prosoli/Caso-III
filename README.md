@@ -48,11 +48,13 @@
 
 ### Catalogo Base del sistema
 
-<details>
- <summary>Desplegar información</summary>
+
  
 #### Tipos de vista
 
+<details>
+ <summary>Desplegar información</summary>
+  
 ```sql
 INSERT INTO [dbo].[vpv_proposalViewTypes] ([name], [enable])
 VALUES
@@ -66,8 +68,12 @@ VALUES
 ```
 </details>
 
- <summary>Desplegar información</summary>
+
+  
 #### Tipos de propuesta
+
+<details>
+ <summary>Desplegar información</summary>
 ```sql
 INSERT INTO [dbo].[vpv_proposalTypes] ([name], [description], [enable])
 VALUES
@@ -88,8 +94,12 @@ VALUES
 ```
 </details>
 
- <summary>Desplegar información</summary>
+  
 #### Estados de procesos
+
+<details>
+ <summary>Desplegar información</summary>
+  
 ```sql
 INSERT INTO [dbo].[vpv_processStatus] ([name])
 VALUES
@@ -108,8 +118,12 @@ VALUES
 ```
 </details>
 
- <summary>Desplegar información</summary>
+  
 #### Entidades de gobierno
+
+<details>
+ <summary>Desplegar información</summary>
+  
 ```sql
 INSERT INTO [dbo].[vpv_governmentEntities] ([name], [acronym], [enable]) --FALTAAA!!
 VALUES
@@ -132,8 +146,12 @@ VALUES
 ```
 </details>
 
- <summary>Desplegar información</summary>
+  
 #### Beneficios de gobierno
+
+<details>
+ <summary>Desplegar información</summary>
+  
 ```sql
 INSERT INTO [dbo].[vpv_governmentBenefits] ([benefit], [enable], [dataType])
 VALUES
