@@ -5788,7 +5788,6 @@ INSERT INTO [dbo].[vpv_statusVoting]
 
 
 ## Dashboard
----
 
 ### Inicio de Sesión
   <details>
