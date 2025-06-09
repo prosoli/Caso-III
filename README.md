@@ -5766,11 +5766,6 @@ INSERT INTO [dbo].[vpv_statusVoting]
 ```
 </details>
 
-  
-
-
-
-
 ## Implementación del API
 <details>
   <summary>Desplegar información</summary>
@@ -5790,3 +5785,16 @@ INSERT INTO [dbo].[vpv_statusVoting]
   </details>
 
 </details>
+
+
+## Dashboard
+---
+
+### Inicio de Sesión
+  <details>
+  <summary>Desplegar información</summary>
+    En construccion
+  </details>
+
+</details>
+
