@@ -34,7 +34,7 @@
 
 🌎 Endpoints implementados por ORM
 
-🌎 DashBoard de consulta
+🌎 [Ir al DashBoard de consulta](#dashboard-de-consulta)
 
 ---
 ## Diseño SQL
@@ -5787,7 +5787,7 @@ INSERT INTO [dbo].[vpv_statusVoting]
 </details>
 
 
-## Dashboard
+## Dashboard de Consulta
 
 ### Inicio de Sesión
   <details>
