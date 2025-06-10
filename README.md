@@ -5523,7 +5523,7 @@ VALUES ('Dinero');
 ### Configuracion de Roles y Permisos
 
 
----
+
 <details>
 <summary><b>vpv_PermissionResource</b></summary>
 
@@ -5549,7 +5549,7 @@ FROM sys.tables t;
 ``` 
 </details>
 
----
+
 <details>
 <summary><b>vpv_PermissionAction</b></summary>
 
@@ -5568,7 +5568,6 @@ VALUES
 </details>
 
 
----
 <details>
 <summary><b>vpv_Permissions</b></summary>
 
@@ -5603,7 +5602,6 @@ CROSS JOIN [dbo].[vpv_PermissionAction] a;
 </details>
 
 
----
 <details>
 <summary><b>vpv_Roles</b></summary>
 
