@@ -5520,6 +5520,207 @@ VALUES ('Dinero');
 </details>
 
 
+### Configuracion de Roles y Permisos
+
+
+---
+<details>
+<summary><b>vpv_PermissionResource</b></summary>
+
+```sql
+INSERT INTO [dbo].[vpv_PermissionResource] (
+    id_permissionResource,
+    name,
+    creationDate,
+    updatedAt,
+    enabled,
+    deleted
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY t.name) + ISNULL((
+        SELECT MAX(id_permissionResource) FROM [dbo].[vpv_PermissionResource]
+    ), 0) AS id_permissionResource,
+    t.name AS name,
+    GETDATE() AS creationDate,
+    GETDATE() AS updatedAt,
+    1 AS enabled,   -- Habilitado por defecto
+    0 AS deleted    -- No eliminado por defecto
+FROM sys.tables t;
+``` 
+</details>
+
+---
+<details>
+<summary><b>vpv_PermissionAction</b></summary>
+
+```sql
+INSERT INTO [dbo].[vpv_PermissionAction] (
+    id_permissionAction,
+    name,
+    descripcion
+)
+VALUES
+    (1, 'SELECT', 'Permite consultar datos de una tabla'),
+    (2, 'INSERT', 'Permite insertar nuevos registros en una tabla'),
+    (3, 'UPDATE', 'Permite modificar registros existentes en una tabla'),
+    (4, 'DELETE', 'Permite eliminar registros de una tabla');
+``` 
+</details>
+
+
+---
+<details>
+<summary><b>vpv_Permissions</b></summary>
+
+```sql
+INSERT INTO [dbo].[vpv_Permissions] (
+    id_permission,
+    id_permisionResource,
+    id_permissionAction,
+    descripcion,
+    creationDate,
+    updatedAt,
+    enabled,
+    deleted,
+    checksum
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY r.id_permissionResource, a.id_permissionAction) +
+        ISNULL((SELECT MAX(id_permission) FROM [dbo].[vpv_Permissions]), 0) AS id_permission,
+    r.id_permissionResource,
+    a.id_permissionAction,
+    CONCAT('Permiso para ', a.name, ' en ', r.name) AS descripcion,
+    GETDATE() AS creationDate,
+    GETDATE() AS updatedAt,
+    1 AS enabled,
+    0 AS deleted,
+    -- Ejemplo básico de checksum: puedes usar una función HASH real como HASHBYTES si lo deseas
+    CONCAT(r.id_permissionResource, '-', a.id_permissionAction) AS checksum
+FROM [dbo].[vpv_PermissionResource] r
+CROSS JOIN [dbo].[vpv_PermissionAction] a;
+
+``` 
+</details>
+
+
+---
+<details>
+<summary><b>vpv_Roles</b></summary>
+
+```sql
+DECLARE @now DATETIME = GETDATE();
+INSERT INTO dbo.vpv_Roles
+  ([id_role], [name], [descripcion], [creationDate], [updateAt], [enabled], [deleted], [checksum])
+VALUES
+  (1,  'Ciudadano',
+       'Usuario registrado que puede votar y consultar propuestas.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '1','Ciudadano','Usuario registrado que puede votar y consultar propuestas.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (2,  'RepresentanteOrg',
+       'Usuario que representa a una organización y presenta propuestas.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '2','RepresentanteOrg','Usuario que representa a una organización y presenta propuestas.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (3,  'Proponente',
+       'Usuario que crea y gestiona propuestas de votación.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '3','Proponente','Usuario que crea y gestiona propuestas de votación.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (4,  'ValidadorHumano',
+       'Revisor que valida propuestas con firmas privadas.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '4','ValidadorHumano','Revisor que valida propuestas con firmas privadas.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (5,  'AceleradoraInversor',
+       'Entidad que avala y financia propuestas de crowdfunding.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '5','AceleradoraInversor','Entidad que avala y financia propuestas de crowdfunding.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (6,  'FuncionarioGubernamental',
+       'Representante del Gobierno que aprueba políticas y beneficios.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '6','FuncionarioGubernamental','Representante del Gobierno que aprueba políticas y beneficios.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (7,  'Auditor',
+       'Accede a logs.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '8','Auditor','Accede a logs.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (8,  'SuperAuditor',
+       'Accede a la informacion de log, propuestas, crowdfunding y votaciones.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '8','SuperAuditor','Accede a la informacion de log, propuestas, crowdfunding y votaciones.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  );
+GO
+``` 
+</details>
+
+
 ### Configuracion de la votacion
 
 ---
