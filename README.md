@@ -5718,6 +5718,134 @@ GO
 ``` 
 </details>
 
+<details>
+<summary><b>Rol de Ciudadano</b></summary>
+
+```sql
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_balances,vpv_currencies,vpv_exchangeRates,vpv_founds,vpv_investmentPayment,vpv_investorsPerProject,vpv_investorsReturns,vpv_paymentMethods,vpv_payments,vpv_planBalance,vpv_transactionPerPlan,vpv_transactionPerUser,vpv_transactions,vpv_userBalance';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_balances,vpv_currencies,vpv_exchangeRates,vpv_founds,vpv_investmentPayment,vpv_investorsPerProject,vpv_investorsReturns,vpv_paymentMethods,vpv_payments,vpv_planBalance,vpv_transactionPerPlan,vpv_transactionPerUser,vpv_transactions,vpv_userBalance';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_balances,vpv_founds,vpv_paymentMethods,vpv_userBalance';
+
+
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_AllowedVoters,vpv_EndOfVoting,vpv_OptionsQuestion,vpv_PlansVotes,vpv_statusVoting,vpv_TargetPopulations,vpv_TargetPopulationsVoting,vpv_VoteComment,vpv_Voter,vpv_VoterDemographics,vpv_VoterResidence,vpv_Votes,vpv_VotesTaken,vpv_voteValues,vpv_votingConfigurations,vpv_votingQuestions,vpv_votingReasons,vpv_votingRestrictions,vpv_votingRestrictionTypes,vpv_VotingRules,vpv_VotingRuleSubType,vpv_VotingRuleTypes,vpv_votingTypes';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_GeneralResultsPerQuestion,vpv_ResultsPerFilter,vpv_ResultsPerOption,vpv_VoteComment,vpv_Voter,vpv_VoterDemographics,vpv_VoterResidence,vpv_Votes,vpv_VotesTaken,vpv_voteValues,vpv_VotingResultsSummary';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_GeneralResultsPerQuestion,vpv_ResultsPerFilter,vpv_ResultsPerOption,vpv_VoteComment,vpv_Voter,vpv_VoterDemographics,vpv_VoterResidence,vpv_Votes,vpv_VotesTaken,vpv_voteValues,vpv_VotingResultsSummary';
+
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_authmethods,vpv_availablePaymentMethods,vpv_availablePaymentMethodsPerUser,vpv_biometricauths,vpv_biorequests,vpv_bioresponses,vpv_biostatus,vpv_biotypes,vpv_devices,vpv_devicetypes,vpv_docs,vpv_docincidents,vpv_docinfos,vpv_docstates,vpv_docstypes,vpv_identitydocs,vpv_identitystates,vpv_identitytype,vpv_languages,vpv_mfa,vpv_mfachallenges,vpv_mfamethods,vpv_mfaselect,vpv_mfasettings,vpv_nationality,vpv_notificationMethods,vpv_requests,vpv_requeststates,vpv_RequestStatus,vpv_requestvalidators,vpv_useroptions,vpv_userperrole,vpv_userResidence,vpv_UserRole,vpv_Users,vpv_validations,vpv_validationstatus,vpv_ips,vpv_keyowners,vpv_SearchingTags';
+
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_logs,vpv_logSeverity,vpv_logsSources,vpv_logTypes';
+``` 
+</details>
+
+<details>
+<summary><b>Rol de FuncionarioGubernamental</b></summary>
+
+```sql
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'FuncionarioGubernamental',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_governmentBenefits,vpv_governmentConditions,vpv_governmentEntities,vpv_PermissionAction,vpv_PermissionResource,vpv_Permissions,vpv_RolePermission,vpv_Roles,vpv_whitelistips,vpv_whitelists';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'FuncionarioGubernamental',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_governmentBenefits,vpv_governmentConditions,vpv_governmentEntities,vpv_whitelistips,vpv_whitelists';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'FuncionarioGubernamental',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_governmentBenefits,vpv_governmentConditions,vpv_governmentEntities,vpv_whitelistips,vpv_whitelists';
+
+``` 
+</details>
+
+<details>
+<summary><b>Rol de Proponente</b></summary>
+
+```sql
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Proponente',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_crowdfoundingProposals,vpv_FilesPerProposal,vpv_proposalBalance,vpv_proposalComments,vpv_proposalNormalViews,vpv_proposalRequirements,vpv_proposals,vpv_proposalTypes,vpv_proposalVersions,vpv_proposalViews,vpv_proposalViewTypes,vpv_projectReports,vpv_AllowedVoters,vpv_EndOfVoting,vpv_GeneralResultsPerQuestion,vpv_OptionsQuestion,vpv_PlansVotes,vpv_ResultsPerFilter,vpv_ResultsPerOption,vpv_ResultTypes,vpv_statusVoting,vpv_TargetPopulations,vpv_TargetPopulationsVoting,vpv_VoteComment,vpv_votingConfigurations,vpv_votingQuestions,vpv_votingReasons,vpv_votingRestrictions,vpv_votingRestrictionTypes,vpv_VotingResultsSummary,vpv_VotingResultStatus,vpv_VotingRules,vpv_VotingRuleSubType,vpv_VotingRuleTypes,vpv_votingTypes';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Proponente',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_crowdfoundingProposals,vpv_FilesPerProposal,vpv_proposalBalance,vpv_proposalComments,vpv_proposalNormalViews,vpv_proposalRequirements,vpv_proposals,vpv_proposalTypes,vpv_proposalVersions,vpv_proposalViews,vpv_proposalViewTypes,vpv_projectReports,vpv_AllowedVoters,vpv_EndOfVoting,vpv_GeneralResultsPerQuestion,vpv_OptionsQuestion,vpv_PlansVotes,vpv_ResultsPerFilter,vpv_ResultsPerOption,vpv_ResultTypes,vpv_statusVoting,vpv_TargetPopulations,vpv_TargetPopulationsVoting,vpv_VoteComment,vpv_votingConfigurations,vpv_votingQuestions,vpv_votingReasons,vpv_votingRestrictions,vpv_votingRestrictionTypes,vpv_VotingResultsSummary,vpv_VotingResultStatus,vpv_VotingRules,vpv_VotingRuleSubType,vpv_VotingRuleTypes,vpv_votingTypes';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Proponente',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_crowdfoundingProposals,vpv_FilesPerProposal,vpv_proposalBalance,vpv_proposalComments,vpv_proposalNormalViews,vpv_proposalRequirements,vpv_proposals,vpv_proposalTypes,vpv_proposalVersions,vpv_proposalViews,vpv_proposalViewTypes,vpv_projectReports,vpv_AllowedVoters,vpv_EndOfVoting,vpv_GeneralResultsPerQuestion,vpv_OptionsQuestion,vpv_PlansVotes,vpv_ResultsPerFilter,vpv_ResultsPerOption,vpv_ResultTypes,vpv_statusVoting,vpv_TargetPopulations,vpv_TargetPopulationsVoting,vpv_VoteComment,vpv_votingConfigurations,vpv_votingQuestions,vpv_votingReasons,vpv_votingRestrictions,vpv_votingRestrictionTypes,vpv_VotingResultsSummary,vpv_VotingResultStatus,vpv_VotingRules,vpv_VotingRuleSubType,vpv_VotingRuleTypes,vpv_votingTypes';
+
+``` 
+</details>
+
+<details>
+<summary><b>Rol de RepresentanteOrg</b></summary>
+
+```sql
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'RepresentanteOrg',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_entities,vpv_entitiestatus,vpv_entityBalance,vpv_entitydescription,vpv_entitykey,vpv_entityroles,vpv_entityroletypes,vpv_entitysubtypes,vpv_entitytypes,vpv_availablePaymentMethodPerEntity';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'RepresentanteOrg',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_entities,vpv_entitiestatus,vpv_entityBalance,vpv_entitydescription,vpv_entitykey,vpv_entityroles,vpv_entityroletypes,vpv_entitysubtypes,vpv_entitytypes,vpv_availablePaymentMethodPerEntity';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'RepresentanteOrg',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_entities,vpv_entitiestatus,vpv_entityBalance,vpv_entitydescription,vpv_entitykey,vpv_entityroles,vpv_entityroletypes,vpv_entitysubtypes,vpv_entitytypes,vpv_availablePaymentMethodPerEntity';
+
+``` 
+</details>
+
+<details>
+<summary><b>Rol de Auditor</b></summary>
+
+```sql
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Auditor',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_logs,vpv_logSeverity,vpv_logsSources,vpv_logTypes';
+
+``` 
+</details>
+
 
 ### Configuracion de la votacion
 
