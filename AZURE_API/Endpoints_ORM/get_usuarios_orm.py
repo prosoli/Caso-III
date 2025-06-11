@@ -1,7 +1,7 @@
 import azure.functions as func
 import logging
 import json
-from models import CaipiUser
+from Models import CaipiUser
 from database import SessionLocal
 
 
