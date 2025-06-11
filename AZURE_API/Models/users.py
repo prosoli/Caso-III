@@ -1,22 +1,21 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean
+
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
 from .base import Base  # Se importa el Base del otro archivo
 
-class CaipiUser(Base):
-    __tablename__ = 'caipi_users'
+class VpvUser(Base):
+    __tablename__ = 'vpv_Users'
 
-    userid = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(50), nullable=False, unique=True)
+    idUser = Column(Integer, primary_key=True, autoincrement=True)
+    nationalityid = Column(Integer, ForeignKey('vpv_nationality.nationalityid'), nullable=False)
+    sexid = Column(Integer, nullable=False)
+    id_card = Column(String(50), nullable=False)
     name = Column(String(50), nullable=False)
     lastname = Column(String(50), nullable=False)
-    birth = Column(Date, nullable=False)
-    password = Column(String(256))
-    deleted = Column(Boolean, nullable=False)
-    active = Column(Boolean, nullable=False)
-    last_update = Column(DateTime, nullable=False)
-    registerdate = Column(Date, nullable=False)
-    profile_url = Column(String(200), nullable=False)
-    img_profile_url = Column(String(200), nullable=False)
-    migrado = Column(Boolean, nullable=False, default=False)
+    birth = Column(DateTime, nullable=False)
+    registration_date = Column(DateTime, nullable=False)
+    is_verified = Column(Boolean, nullable=True, default=True)
+    enable = Column(Boolean, nullable=True, default=True)
+    deleted = Column(Boolean, nullable=True, default=False)
 
     def __repr__(self):
-        return f"<CaipiUser(username={self.username}, name={self.name})>"
+        return f"<VpvUser(idUser={self.idUser}, name={self.name}, lastname={self.lastname})>"
