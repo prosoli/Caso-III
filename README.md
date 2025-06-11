@@ -34,7 +34,7 @@
 
 🌎 Endpoints implementados por ORM
 
-🌎 DashBoard de consulta
+🌎 [Ir al DashBoard de consulta](#dashboard-de-consulta)
 
 ---
 ## Diseño SQL
@@ -5027,6 +5027,9 @@ Este catálogo incluye, entre otros, datos sobre nacionalidades, provincias, niv
 
 🔋[Ver llenado de la base de datos]()
  
+### Configuración de propuestas
+---
+
 #### Tipos de vista
 
 <details>
@@ -5068,6 +5071,21 @@ VALUES
     ('Propuesta de seguridad', 'Medidas para prevenir el delito, mejorar la vigilancia o implementar tecnologías de seguridad.', 1),
     ('Propuesta participativa', 'Mecanismos que promuevan la participación ciudadana o procesos de gobernanza abierta.', 1),
     ('Propuesta piloto', 'Prueba controlada de nuevas ideas antes de su implementación general.', 1),
+    ('Propuesta experimental', 'Iniciativas que exploran enfoques no convencionales o innovadores.', 1)INSERT INTO [dbo].[vpv_proposalTypes] ([name], [description], [enable])
+VALUES
+    ('Proyecto de ley', 'Propuesta para crear, modificar o derogar una ley vigente a través del proceso legislativo.', 1),
+    ('Propuesta tecnológica', 'Iniciativa para implementar soluciones digitales o herramientas tecnológicas en instituciones o comunidades.', 1),
+    ('Propuesta ambiental', 'Iniciativas enfocadas en la protección del medio ambiente, sostenibilidad o mitigación del cambio climático.', 1),
+    ('Propuesta educativa', 'Proyectos dirigidos a mejorar el acceso, calidad o cobertura de la educación.', 1),
+    ('Propuesta de salud pública', 'Acciones para fortalecer el sistema de salud, campañas preventivas o mejora de servicios médicos.', 1),
+    ('Propuesta de infraestructura', 'Obras públicas como carreteras, puentes, edificios comunitarios o redes eléctricas.', 1),
+    ('Propuesta social', 'Propuestas orientadas a mejorar la inclusión, equidad, y condiciones sociales de poblaciones vulnerables.', 1),
+    ('Propuesta cultural', 'Proyectos para preservar, difundir o desarrollar el patrimonio y actividades culturales.', 1),
+    ('Propuesta económica', 'Acciones dirigidas a estimular la economía local, emprendimientos o generación de empleo.', 1),
+    ('Propuesta deportiva', 'Fomento de la actividad física, apoyo a ligas deportivas o construcción de instalaciones.', 1),
+    ('Propuesta de seguridad', 'Medidas para prevenir el delito, mejorar la vigilancia o implementar tecnologías de seguridad.', 1),
+    ('Propuesta participativa', 'Mecanismos que promuevan la participación ciudadana o procesos de gobernanza abierta.', 1),
+    ('Propuesta piloto', 'Prueba controlada de nuevas ideas antes de su implementación general.', 1),
     ('Propuesta experimental', 'Iniciativas que exploran enfoques no convencionales o innovadores.', 1)
 ```
 </details>
@@ -5092,7 +5110,8 @@ VALUES
     ('Completado'),
     ('Cancelado'),
     ('Archivado'),
-    ('Publicado')
+    ('Publicado'),
+	('Ejecutando')
 ```
 </details>
 
@@ -5103,7 +5122,7 @@ VALUES
  <summary>Desplegar información</summary>
   
 ```sql
-INSERT INTO [dbo].[vpv_governmentEntities] ([name], [acronym], [enable]) --FALTAAA!!
+INSERT INTO [dbo].[vpv_governmentEntities] ([name], [acronym], [enable]) 
 VALUES
     ('Caja Costarricense de Seguro Social', 'CCSS', 1),
     ('Ministerio de Educación Pública', 'MEP', 1),
@@ -5150,6 +5169,684 @@ VALUES
 
 ```
 </details>
+
+#### Tipos de Avales
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO [dbo].[vpv_sponsornGroupTypes] ([name], [enable])
+VALUES
+    ('Incubadora de empresas', 1),
+    ('Aceleradora de negocios', 1),
+    ('Grupo de inversión', 1),
+    ('Organización sin fines de lucro', 1),
+    ('Agencia de desarrollo regional', 1),
+    ('Banco de desarrollo', 1),
+    ('Cámara empresarial', 1),
+    ('Cooperativa de apoyo', 1),
+    ('Organismo internacional', 1),
+    ('Red de mentores', 1)
+```
+</details>
+
+
+#### Avales
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO [dbo].[vpv_sponsorGroups] 
+([name], [description], [enable], [deleted], [sponsorGroupTypeId])
+VALUES
+('ParqueTec', 'SponsorGroup', 1, 0, 1),        
+('AUGE UCR', 'SponsorGroup', 1, 0, 2),         
+('Carao Ventures', 'SponsorGroup', 1, 0, 3),   
+('Parque La Libertad', 'SponsorGroup', 1, 0, 4),
+('PROCOMER', 'SponsorGroup', 1, 0, 5),         
+('GNPlus', 'SponsorGroup', 1, 0, 6),           
+('Fundación CRUSA', 'SponsorGroup', 1, 0, 7),  
+('InnovaAP', 'SponsorGroup', 1, 0, 8),         
+('Impact Hub SJ', 'SponsorGroup', 1, 0, 9),    
+('CONICIT', 'SponsorGroup', 1, 0, 10)
+```
+</details>
+
+
+#### Tipos de Condiciones
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO [dbo].[vpv_sponsorAgrementsType] ([name], [description], [dataType])
+VALUES
+('Crowdfunding de donación', 'Aportes voluntarios sin retorno económico directo', 'bit'),
+('Crowdfunding de recompensa', 'Aportes a cambio de un beneficio simbólico o material', 'bit'),
+('Crowdfunding de préstamo', 'Financiamiento con obligación de reembolso con o sin intereses', 'decimal'),
+('Crowdfunding de inversión', 'Participación a cambio de una parte del capital o utilidades', 'integer'),
+('Apoyo con producto o servicio', 'El patrocinador entrega bienes o servicios en lugar de dinero', 'bit')
+```
+</details>
+
+### Configuración General 
+---
+
+#### Schedules
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+CREATE OR ALTER PROCEDURE dbo.vpvSP_LlenarSchedules
+AS
+BEGIN
+    DECLARE @horarios TABLE (
+        name NVARCHAR(50),
+        recurrencyType NVARCHAR(50),
+        repetition INT
+    );
+
+
+    INSERT INTO @horarios (name, recurrencyType, repetition)
+    VALUES 
+        ('Cada semana', 'semanal', 1),
+        ('Cada mes', 'mensual', 1),
+        ('Cada 15 días', 'semanal', 2);
+
+    DECLARE @i INT = 1;
+    DECLARE @mes INT;
+    DECLARE @dia INT;
+    DECLARE @endDate DATETIME;
+
+
+    WHILE @i <= 13
+    BEGIN
+        SET @mes = FLOOR(RAND(CHECKSUM(NEWID())) * 8) + 5;  
+        SET @dia = FLOOR(RAND(CHECKSUM(NEWID())) * 30) + 1; 
+        SET @endDate = DATEFROMPARTS(2025, @mes, @dia);
+
+        INSERT INTO [dbo].[vpv_schedules] ([name], [recurrencyType], [repetition], [endType], [endDate])
+        SELECT name, recurrencyType, repetition, 'NA', @endDate
+        FROM @horarios;
+
+        SET @i += 1;
+    END
+END;
+GO
+
+
+EXEC dbo.vpvSP_LlenarSchedules;
+```
+</details>
+
+
+#### Tipos de Transacción
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO [dbo].[vpv_transTypes] 
+([name], [deleted], [transTypeId])
+VALUES
+    ( 'Credit', 0,1),            
+    ( 'Debit', 0,2),              
+    ( 'Refund', 0,3),           
+    ( 'Manual Adjustment', 0, 4),  
+    ( 'Chargeback', 0,5),            
+    ( 'Deposit', 0,6),               
+    ( 'Withdrawal', 0,7),            
+    ( 'Transfer', 0,8)
+```
+</details>
+
+
+#### Subtipos de Transacción
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO [dbo].[vpv_transSubTypes] ([name], [deleted])
+VALUES
+    ('Aporte voluntario', 0),
+    ('Compra de recompensa', 0),
+    ('Reembolso propuesta cancelada', 0),
+    ('Aprobación de financiamiento', 0),
+    ('Pago de propuesta', 0),
+    ('Activación de beneficio', 0),
+    ('Crédito institucional', 0),
+    ('Cancelación de participación', 0),
+    ('Inversión de Usuario', 0),
+	('Inversión de Entidad', 0),
+	('Inversión de Sponsor', 0),
+	('Inversion a un plan',0)
+```
+</details>
+
+#### Log Severity
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO [dbo].vpv_logSeverity([name])
+VALUES
+	('Low'),
+	('Medium'),
+	('High'),
+	('Critical'),
+	('Informational');
+```
+</details>
+
+
+#### Log Sources
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO [dbo].vpv_logsSources([name])
+VALUES
+	('System'),
+	('Application'),
+	('Database'),
+	('Security'),
+	('User Activity'),
+	('Network'),
+	('API'),
+	('Payment Gateway'),
+	('Error Handler'),
+	('Authentication'),
+	('File System');
+
+```
+</details>
+
+
+#### Log Types
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO [dbo].vpv_logTypes([name])
+VALUES
+	('Error'),
+	('Warning'),
+	('Info'),
+	('Debug'),
+	('Critical'),
+	('Audit'),
+	('Security'),
+	('Transaction'),
+	('Performance'),
+	('Access');
+
+```
+</details>
+
+
+#### Currencies
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO dbo.vpv_currencies(currencyId, name, acronym, symbol)--
+VALUES (1, 'Colón Costa Rica', 'CRC', '¢'),(2, 'Dólar Estados Unidos', 'USD', '$');
+
+```
+</details>
+
+
+#### Exchange Rates
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO dbo.vpv_exchangeRates--F
+	(startDate,    endDate,      exchangeRate, enable, currentExchange, currencyId)
+VALUES
+	  ('2025-06-14','2025-06-14', 0.00195,       1,      0,                   1),
+	  ('2025-06-15','2025-06-15', 0.0019493,     1,      0,                   1),
+	  ('2025-06-16','2025-06-16', 0.0019896,     1,      0,                   1),
+	  ('2025-06-17','2025-06-17', 0.00199,       1,      0,                   1),
+	  ('2025-06-18','2025-06-18', 0.00199,       1,      1,                   1);
+
+```
+</details>
+
+
+
+#### Payment Methods
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO [dbo].[vpv_paymentMethods] ([name], [apiURL], [secretKey], [key], [enable])
+VALUES
+	('PayPal', 'https://api.paypal.com/v1/', 0x5A3D4C6F2A7B9C5F1234567890ABCDE1234567890ABCDEF0123456789ABCDEF, 0x7F5A9B6C5D7E1F23334567890ABCDE1234567890ABCDEF0123456789ABCDE, 1),
+	('Stripe', 'https://api.stripe.com/v1/', 0x8F3A7B9C1D2E3F9A1234567890ABCDE1234567890ABCDEF0123456789ABCDE, 0x9B3D6C2F1D8E7A234567890ABCDE1234567890ABCDEF0123456789ABCDE, 1),
+	('MercadoPago', 'https://api.mercadopago.com/v1/', 0x2D3A5F9B1C7E9D3A567890ABCDE1234567890ABCDEF0123456789ABCDE, 0x4F2A8D6E3B9F0A234567890ABCDE1234567890ABCDEF0123456789ABCDE, 1),
+	('RappiPay', 'https://api.rappipay.com/v1/', 0x1A3D4E5F2B8C9D3A567890ABCDE1234567890ABCDEF0123456789ABCDE, 0x5E7A9D2B6C3F4A1234567890ABCDE1234567890ABCDEF0123456789ABCDE, 1),
+	('Apple Pay', 'https://api.apple.com/v1/', 0x0B5D6F3A2C8E9D234567890ABCDE1234567890ABCDEF0123456789ABCDE, 0x9C7F2A3D8B5E1F9A234567890ABCDE1234567890ABCDEF0123456789ABCDE, 1);
+
+```
+</details>
+
+
+#### Available Payment Methods
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+CREATE OR ALTER PROCEDURE dbo.vpvSP_InsertarPaymentMethods
+AS
+BEGIN
+    DECLARE @i INT = 1;
+    DECLARE @name VARCHAR(55);
+    DECLARE @methodId INT;
+    DECLARE @token VARCHAR(256);
+    DECLARE @expTokenDate DATETIME;
+    DECLARE @maskAccount NVARCHAR(MAX);
+    DECLARE @callbackURL NVARCHAR(200);
+    DECLARE @configurationDetails NVARCHAR(MAX);
+    DECLARE @refreshToken VARBINARY(256);
+
+	-- Cursor para recorrer los métodos de pago existentes, recibiendo loda daros de la consulta select de la tabla que contiene los metodos de pago
+    DECLARE method_cursor CURSOR FOR
+        SELECT [name], [methodId]
+        FROM [dbo].[vpv_paymentMethods]; 
+
+    OPEN method_cursor;
+    FETCH NEXT FROM method_cursor INTO @name, @methodId;
+
+    WHILE @i <= 15
+    BEGIN
+        SET @token = CONVERT(VARCHAR(256), NEWID());
+        SET @expTokenDate = DATEADD(DAY, @i * 30, GETDATE());
+        SET @maskAccount = CONCAT('****', RIGHT('000' + CAST((1000 + @i * 7) AS NVARCHAR), 4));
+        SET @callbackURL = CONCAT('https://vpv.example.com/callback/method', @i);
+        SET @configurationDetails = CONCAT('{"currency":"USD", "method":"', @name, '"}');
+        SET @refreshToken = CAST(HASHBYTES('SHA2_256', @token) AS VARBINARY(256));
+
+        INSERT INTO [dbo].[vpv_availablePaymentMethods]
+           ([name], [token], [expTokenDate], [maskAccount], [callbackURL], [configurationDetails], [refreshToken], [methodId])
+        VALUES
+           (@name, @token, @expTokenDate, @maskAccount, @callbackURL, @configurationDetails, @refreshToken, @methodId);
+
+        SET @i += 1;
+
+        FETCH NEXT FROM method_cursor INTO @name, @methodId;
+
+        IF @@FETCH_STATUS <> 0
+        BEGIN
+            CLOSE method_cursor;
+            OPEN method_cursor;
+            FETCH NEXT FROM method_cursor INTO @name, @methodId;
+        END
+    END
+
+	-- Cerrar y liberar el cursor
+    CLOSE method_cursor;
+    DEALLOCATE method_cursor;
+END;
+GO
+
+
+EXEC dbo.vpvSP_InsertarPaymentMethods;
+
+```
+</details>
+
+
+#### Founds
+
+<details>
+ <summary>Desplegar información</summary>
+  
+```sql
+INSERT INTO [dbo].[vpv_founds]
+    ([name])
+VALUES ('Dinero');
+```
+</details>
+
+
+### Configuracion de Roles y Permisos
+
+
+
+<details>
+<summary><b>vpv_PermissionResource</b></summary>
+
+```sql
+INSERT INTO [dbo].[vpv_PermissionResource] (
+    id_permissionResource,
+    name,
+    creationDate,
+    updatedAt,
+    enabled,
+    deleted
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY t.name) + ISNULL((
+        SELECT MAX(id_permissionResource) FROM [dbo].[vpv_PermissionResource]
+    ), 0) AS id_permissionResource,
+    t.name AS name,
+    GETDATE() AS creationDate,
+    GETDATE() AS updatedAt,
+    1 AS enabled,   -- Habilitado por defecto
+    0 AS deleted    -- No eliminado por defecto
+FROM sys.tables t;
+``` 
+</details>
+
+
+<details>
+<summary><b>vpv_PermissionAction</b></summary>
+
+```sql
+INSERT INTO [dbo].[vpv_PermissionAction] (
+    id_permissionAction,
+    name,
+    descripcion
+)
+VALUES
+    (1, 'SELECT', 'Permite consultar datos de una tabla'),
+    (2, 'INSERT', 'Permite insertar nuevos registros en una tabla'),
+    (3, 'UPDATE', 'Permite modificar registros existentes en una tabla'),
+    (4, 'DELETE', 'Permite eliminar registros de una tabla');
+``` 
+</details>
+
+
+<details>
+<summary><b>vpv_Permissions</b></summary>
+
+```sql
+INSERT INTO [dbo].[vpv_Permissions] (
+    id_permission,
+    id_permisionResource,
+    id_permissionAction,
+    descripcion,
+    creationDate,
+    updatedAt,
+    enabled,
+    deleted,
+    checksum
+)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY r.id_permissionResource, a.id_permissionAction) +
+        ISNULL((SELECT MAX(id_permission) FROM [dbo].[vpv_Permissions]), 0) AS id_permission,
+    r.id_permissionResource,
+    a.id_permissionAction,
+    CONCAT('Permiso para ', a.name, ' en ', r.name) AS descripcion,
+    GETDATE() AS creationDate,
+    GETDATE() AS updatedAt,
+    1 AS enabled,
+    0 AS deleted,
+    -- Ejemplo básico de checksum: puedes usar una función HASH real como HASHBYTES si lo deseas
+    CONCAT(r.id_permissionResource, '-', a.id_permissionAction) AS checksum
+FROM [dbo].[vpv_PermissionResource] r
+CROSS JOIN [dbo].[vpv_PermissionAction] a;
+
+``` 
+</details>
+
+
+<details>
+<summary><b>vpv_Roles</b></summary>
+
+```sql
+DECLARE @now DATETIME = GETDATE();
+INSERT INTO dbo.vpv_Roles
+  ([id_role], [name], [descripcion], [creationDate], [updateAt], [enabled], [deleted], [checksum])
+VALUES
+  (1,  'Ciudadano',
+       'Usuario registrado que puede votar y consultar propuestas.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '1','Ciudadano','Usuario registrado que puede votar y consultar propuestas.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (2,  'RepresentanteOrg',
+       'Usuario que representa a una organización y presenta propuestas.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '2','RepresentanteOrg','Usuario que representa a una organización y presenta propuestas.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (3,  'Proponente',
+       'Usuario que crea y gestiona propuestas de votación.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '3','Proponente','Usuario que crea y gestiona propuestas de votación.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (4,  'ValidadorHumano',
+       'Revisor que valida propuestas con firmas privadas.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '4','ValidadorHumano','Revisor que valida propuestas con firmas privadas.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (5,  'AceleradoraInversor',
+       'Entidad que avala y financia propuestas de crowdfunding.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '5','AceleradoraInversor','Entidad que avala y financia propuestas de crowdfunding.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (6,  'FuncionarioGubernamental',
+       'Representante del Gobierno que aprueba políticas y beneficios.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '6','FuncionarioGubernamental','Representante del Gobierno que aprueba políticas y beneficios.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (7,  'Auditor',
+       'Accede a logs.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '8','Auditor','Accede a logs.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  ),
+  (8,  'SuperAuditor',
+       'Accede a la informacion de log, propuestas, crowdfunding y votaciones.',
+       @now, @now, 1, 0,
+       HASHBYTES(
+         'SHA2_256',
+         CONCAT(
+           '8','SuperAuditor','Accede a la informacion de log, propuestas, crowdfunding y votaciones.',
+           CONVERT(VARCHAR(126), @now, 126),
+           CONVERT(VARCHAR(126), @now, 126),
+           '1','0'
+         )
+       )
+  );
+GO
+``` 
+</details>
+
+<details>
+<summary><b>Rol de Ciudadano</b></summary>
+
+```sql
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_balances,vpv_currencies,vpv_exchangeRates,vpv_founds,vpv_investmentPayment,vpv_investorsPerProject,vpv_investorsReturns,vpv_paymentMethods,vpv_payments,vpv_planBalance,vpv_transactionPerPlan,vpv_transactionPerUser,vpv_transactions,vpv_userBalance';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_balances,vpv_currencies,vpv_exchangeRates,vpv_founds,vpv_investmentPayment,vpv_investorsPerProject,vpv_investorsReturns,vpv_paymentMethods,vpv_payments,vpv_planBalance,vpv_transactionPerPlan,vpv_transactionPerUser,vpv_transactions,vpv_userBalance';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_balances,vpv_founds,vpv_paymentMethods,vpv_userBalance';
+
+
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_AllowedVoters,vpv_EndOfVoting,vpv_OptionsQuestion,vpv_PlansVotes,vpv_statusVoting,vpv_TargetPopulations,vpv_TargetPopulationsVoting,vpv_VoteComment,vpv_Voter,vpv_VoterDemographics,vpv_VoterResidence,vpv_Votes,vpv_VotesTaken,vpv_voteValues,vpv_votingConfigurations,vpv_votingQuestions,vpv_votingReasons,vpv_votingRestrictions,vpv_votingRestrictionTypes,vpv_VotingRules,vpv_VotingRuleSubType,vpv_VotingRuleTypes,vpv_votingTypes';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_GeneralResultsPerQuestion,vpv_ResultsPerFilter,vpv_ResultsPerOption,vpv_VoteComment,vpv_Voter,vpv_VoterDemographics,vpv_VoterResidence,vpv_Votes,vpv_VotesTaken,vpv_voteValues,vpv_VotingResultsSummary';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_GeneralResultsPerQuestion,vpv_ResultsPerFilter,vpv_ResultsPerOption,vpv_VoteComment,vpv_Voter,vpv_VoterDemographics,vpv_VoterResidence,vpv_Votes,vpv_VotesTaken,vpv_voteValues,vpv_VotingResultsSummary';
+
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_authmethods,vpv_availablePaymentMethods,vpv_availablePaymentMethodsPerUser,vpv_biometricauths,vpv_biorequests,vpv_bioresponses,vpv_biostatus,vpv_biotypes,vpv_devices,vpv_devicetypes,vpv_docs,vpv_docincidents,vpv_docinfos,vpv_docstates,vpv_docstypes,vpv_identitydocs,vpv_identitystates,vpv_identitytype,vpv_languages,vpv_mfa,vpv_mfachallenges,vpv_mfamethods,vpv_mfaselect,vpv_mfasettings,vpv_nationality,vpv_notificationMethods,vpv_requests,vpv_requeststates,vpv_RequestStatus,vpv_requestvalidators,vpv_useroptions,vpv_userperrole,vpv_userResidence,vpv_UserRole,vpv_Users,vpv_validations,vpv_validationstatus,vpv_ips,vpv_keyowners,vpv_SearchingTags';
+
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Ciudadano',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_logs,vpv_logSeverity,vpv_logsSources,vpv_logTypes';
+``` 
+</details>
+
+<details>
+<summary><b>Rol de FuncionarioGubernamental</b></summary>
+
+```sql
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'FuncionarioGubernamental',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_governmentBenefits,vpv_governmentConditions,vpv_governmentEntities,vpv_PermissionAction,vpv_PermissionResource,vpv_Permissions,vpv_RolePermission,vpv_Roles,vpv_whitelistips,vpv_whitelists';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'FuncionarioGubernamental',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_governmentBenefits,vpv_governmentConditions,vpv_governmentEntities,vpv_whitelistips,vpv_whitelists';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'FuncionarioGubernamental',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_governmentBenefits,vpv_governmentConditions,vpv_governmentEntities,vpv_whitelistips,vpv_whitelists';
+
+``` 
+</details>
+
+<details>
+<summary><b>Rol de Proponente</b></summary>
+
+```sql
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Proponente',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_crowdfoundingProposals,vpv_FilesPerProposal,vpv_proposalBalance,vpv_proposalComments,vpv_proposalNormalViews,vpv_proposalRequirements,vpv_proposals,vpv_proposalTypes,vpv_proposalVersions,vpv_proposalViews,vpv_proposalViewTypes,vpv_projectReports,vpv_AllowedVoters,vpv_EndOfVoting,vpv_GeneralResultsPerQuestion,vpv_OptionsQuestion,vpv_PlansVotes,vpv_ResultsPerFilter,vpv_ResultsPerOption,vpv_ResultTypes,vpv_statusVoting,vpv_TargetPopulations,vpv_TargetPopulationsVoting,vpv_VoteComment,vpv_votingConfigurations,vpv_votingQuestions,vpv_votingReasons,vpv_votingRestrictions,vpv_votingRestrictionTypes,vpv_VotingResultsSummary,vpv_VotingResultStatus,vpv_VotingRules,vpv_VotingRuleSubType,vpv_VotingRuleTypes,vpv_votingTypes';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Proponente',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_crowdfoundingProposals,vpv_FilesPerProposal,vpv_proposalBalance,vpv_proposalComments,vpv_proposalNormalViews,vpv_proposalRequirements,vpv_proposals,vpv_proposalTypes,vpv_proposalVersions,vpv_proposalViews,vpv_proposalViewTypes,vpv_projectReports,vpv_AllowedVoters,vpv_EndOfVoting,vpv_GeneralResultsPerQuestion,vpv_OptionsQuestion,vpv_PlansVotes,vpv_ResultsPerFilter,vpv_ResultsPerOption,vpv_ResultTypes,vpv_statusVoting,vpv_TargetPopulations,vpv_TargetPopulationsVoting,vpv_VoteComment,vpv_votingConfigurations,vpv_votingQuestions,vpv_votingReasons,vpv_votingRestrictions,vpv_votingRestrictionTypes,vpv_VotingResultsSummary,vpv_VotingResultStatus,vpv_VotingRules,vpv_VotingRuleSubType,vpv_VotingRuleTypes,vpv_votingTypes';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Proponente',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_crowdfoundingProposals,vpv_FilesPerProposal,vpv_proposalBalance,vpv_proposalComments,vpv_proposalNormalViews,vpv_proposalRequirements,vpv_proposals,vpv_proposalTypes,vpv_proposalVersions,vpv_proposalViews,vpv_proposalViewTypes,vpv_projectReports,vpv_AllowedVoters,vpv_EndOfVoting,vpv_GeneralResultsPerQuestion,vpv_OptionsQuestion,vpv_PlansVotes,vpv_ResultsPerFilter,vpv_ResultsPerOption,vpv_ResultTypes,vpv_statusVoting,vpv_TargetPopulations,vpv_TargetPopulationsVoting,vpv_VoteComment,vpv_votingConfigurations,vpv_votingQuestions,vpv_votingReasons,vpv_votingRestrictions,vpv_votingRestrictionTypes,vpv_VotingResultsSummary,vpv_VotingResultStatus,vpv_VotingRules,vpv_VotingRuleSubType,vpv_VotingRuleTypes,vpv_votingTypes';
+
+``` 
+</details>
+
+<details>
+<summary><b>Rol de RepresentanteOrg</b></summary>
+
+```sql
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'RepresentanteOrg',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_entities,vpv_entitiestatus,vpv_entityBalance,vpv_entitydescription,vpv_entitykey,vpv_entityroles,vpv_entityroletypes,vpv_entitysubtypes,vpv_entitytypes,vpv_availablePaymentMethodPerEntity';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'RepresentanteOrg',
+    @actionName   = 'INSERT',
+    @resourceList = 'vpv_entities,vpv_entitiestatus,vpv_entityBalance,vpv_entitydescription,vpv_entitykey,vpv_entityroles,vpv_entityroletypes,vpv_entitysubtypes,vpv_entitytypes,vpv_availablePaymentMethodPerEntity';
+
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'RepresentanteOrg',
+    @actionName   = 'UPDATE',
+    @resourceList = 'vpv_entities,vpv_entitiestatus,vpv_entityBalance,vpv_entitydescription,vpv_entitykey,vpv_entityroles,vpv_entityroletypes,vpv_entitysubtypes,vpv_entitytypes,vpv_availablePaymentMethodPerEntity';
+
+``` 
+</details>
+
+<details>
+<summary><b>Rol de Auditor</b></summary>
+
+```sql
+EXEC dbo.vpvSP_BatchAgregarPermisoRol
+    @roleName     = 'Auditor',
+    @actionName   = 'SELECT',
+    @resourceList = 'vpv_logs,vpv_logSeverity,vpv_logsSources,vpv_logTypes';
+
+``` 
+</details>
+
 
 ### Configuracion de la votacion
 
@@ -5397,11 +6094,6 @@ INSERT INTO [dbo].[vpv_statusVoting]
 ```
 </details>
 
-  
-
-
-
-
 ## Implementación del API
 <details>
   <summary>Desplegar información</summary>
@@ -5421,3 +6113,15 @@ INSERT INTO [dbo].[vpv_statusVoting]
   </details>
 
 </details>
+
+
+## Dashboard de Consulta
+
+### Inicio de Sesión
+  <details>
+  <summary>Desplegar información</summary>
+    En construccion
+  </details>
+
+</details>
+
