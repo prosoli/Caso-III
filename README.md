@@ -5030,10 +5030,8 @@ Este catálogo incluye, entre otros, datos sobre nacionalidades, provincias, niv
 ### Configuración de propuestas
 ---
 
-#### Tipos de vista
-
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_proposalViewTypes</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_proposalViewTypes] ([name], [enable])
@@ -5050,10 +5048,8 @@ VALUES
 
 
   
-#### Tipos de propuesta
-
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_proposalTypes</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_proposalTypes] ([name], [description], [enable])
@@ -5091,10 +5087,10 @@ VALUES
 </details>
 
   
-#### Estados de procesos
+
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_processStatus</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_processStatus] ([name])
@@ -5116,10 +5112,8 @@ VALUES
 </details>
 
   
-#### Entidades de gobierno
-
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_governmentEntities</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_governmentEntities] ([name], [acronym], [enable]) 
@@ -5143,10 +5137,9 @@ VALUES
 ```
 </details>
 
-#### Beneficios de gobierno
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_governmentBenefits</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_governmentBenefits] ([benefit], [enable], [dataType])
@@ -5170,10 +5163,9 @@ VALUES
 ```
 </details>
 
-#### Tipos de Avales
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_sponsornGroupTypes</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_sponsornGroupTypes] ([name], [enable])
@@ -5192,10 +5184,8 @@ VALUES
 </details>
 
 
-#### Avales
-
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_sponsorGroups</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_sponsorGroups] 
@@ -5215,10 +5205,9 @@ VALUES
 </details>
 
 
-#### Tipos de Condiciones
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_sponsorAgrementsType</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_sponsorAgrementsType] ([name], [description], [dataType])
