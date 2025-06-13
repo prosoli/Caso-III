@@ -5223,10 +5223,8 @@ VALUES
 ### Configuración General 
 ---
 
-#### Schedules
-
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_schedules</b></summary>
   
 ```sql
 CREATE OR ALTER PROCEDURE dbo.vpvSP_LlenarSchedules
@@ -5272,10 +5270,9 @@ EXEC dbo.vpvSP_LlenarSchedules;
 </details>
 
 
-#### Tipos de Transacción
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_transTypes</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_transTypes] 
@@ -5293,10 +5290,9 @@ VALUES
 </details>
 
 
-#### Subtipos de Transacción
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_transSubTypes</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_transSubTypes] ([name], [deleted])
@@ -5316,10 +5312,10 @@ VALUES
 ```
 </details>
 
-#### Log Severity
+
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_logSeverity</b></summary>
   
 ```sql
 INSERT INTO [dbo].vpv_logSeverity([name])
@@ -5333,10 +5329,9 @@ VALUES
 </details>
 
 
-#### Log Sources
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_logsSources</b></summary>
   
 ```sql
 INSERT INTO [dbo].vpv_logsSources([name])
@@ -5357,10 +5352,9 @@ VALUES
 </details>
 
 
-#### Log Types
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_logTypes</b></summary>
   
 ```sql
 INSERT INTO [dbo].vpv_logTypes([name])
@@ -5380,10 +5374,9 @@ VALUES
 </details>
 
 
-#### Currencies
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_currencies</b></summary>
   
 ```sql
 INSERT INTO dbo.vpv_currencies(currencyId, name, acronym, symbol)--
@@ -5393,13 +5386,12 @@ VALUES (1, 'Colón Costa Rica', 'CRC', '¢'),(2, 'Dólar Estados Unidos', 'USD',
 </details>
 
 
-#### Exchange Rates
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_exchangeRates</b></summary>
   
 ```sql
-INSERT INTO dbo.vpv_exchangeRates--F
+INSERT INTO dbo.vpv_exchangeRates
 	(startDate,    endDate,      exchangeRate, enable, currentExchange, currencyId)
 VALUES
 	  ('2025-06-14','2025-06-14', 0.00195,       1,      0,                   1),
@@ -5413,10 +5405,9 @@ VALUES
 
 
 
-#### Payment Methods
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_paymentMethods</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_paymentMethods] ([name], [apiURL], [secretKey], [key], [enable])
@@ -5431,10 +5422,9 @@ VALUES
 </details>
 
 
-#### Available Payment Methods
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_availablePaymentMethods</b></summary>
   
 ```sql
 CREATE OR ALTER PROCEDURE dbo.vpvSP_InsertarPaymentMethods
@@ -5497,10 +5487,9 @@ EXEC dbo.vpvSP_InsertarPaymentMethods;
 </details>
 
 
-#### Founds
 
 <details>
- <summary>Desplegar información</summary>
+ <summary><b>vpv_founds</b></summary>
   
 ```sql
 INSERT INTO [dbo].[vpv_founds]
