@@ -5106,8 +5106,7 @@ VALUES
     ('Completado'),
     ('Cancelado'),
     ('Archivado'),
-    ('Publicado'),
-	('Ejecutando')
+    ('Publicado')
 ```
 </details>
 
