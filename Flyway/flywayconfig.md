@@ -2,7 +2,7 @@
 Descargue el command-line de flyway en: https://documentation.red-gate.com/fd/command-line-277579359.html
 
 ### Paso 2
-Despues de ingresar al archivo, ejecute 'mkdir sql' para asi crear la carpeta en la que se van a guardar todos los scripts de versiones de la bd
+Despues de descomprimir el archivo, puede ingresarlo desde visual studio code. Ejecute 'mkdir sql' para asi crear la carpeta en la que se van a guardar todos los scripts de versiones de la bd
 
 ### Paso 3
 
