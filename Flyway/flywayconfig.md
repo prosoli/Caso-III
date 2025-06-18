@@ -34,7 +34,7 @@ despues debe correr '.\flyway.cmd baseline' para hacer la conexion con la bd y d
 
 NOTA> se utiliza baseline para indicar el punto de inicio del Flyway, le dice desde que punto de referencia va a empezar a trabajar (en nuestro caso que ya tenemos tablas creadas)
 
-Despues debe poner el archivo de creacion 'V1__scriptCreacion.sql' en la carpeta y ejecutar '.\flyway.cmd migrate' y lo que se va a realizar es una comparacion con lo que ya esta en la bd, en este caso no se ejecuta el script porque se detetcta que la bd ya tiene eso
+Despues debe poner el archivo de creacion 'V1__scriptCreacion.sql' en la carpeta y ejecutar '.\flyway.cmd migrate' y lo que se va a realizar es una comparacion con lo que ya esta en la bd, en este caso no se ejecuta el script porque se detetcta que la bd ya tiene eso, pero la idea es marcar el script de creacion
 
 ### Paso 5
 
