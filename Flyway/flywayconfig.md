@@ -23,10 +23,12 @@ Formato:
 En la carpeta conf ya hay un archivo que trae ejemplo para hacer la conexion a la base de datos, lo que debe hacer es hacer una copia de ese archivo ahí mismo y renombrarla como 'flyway.conf' en el cual vamos a añadir la conexion a la base de datos. 
 Cada uno debe adaptar su conexion pero es algo asi 
 
+``
 flyway.url=jdbc:sqlserver://PRISCILLAROMERO;databaseName=puravidabd;integratedSecurity=true;trustServerCertificate=true
 flyway.schemas=puravidabd
 flyway.locations=filesystem:sql
 flyway.detectEncoding=true
+``
 
 despues debe correr '.\flyway.cmd baseline' para hacer la conexion con la bd y debe verificar que le aparezca una nueva tabla en la bd llamada puravidabd.flyway_schema_history 
 
