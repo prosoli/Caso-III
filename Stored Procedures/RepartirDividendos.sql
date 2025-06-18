@@ -1,0 +1,363 @@
+
+--############################ SP 1 ####################################
+
+
+-----------------------------------------------------------
+-- Autor: Priscilla Romero Barquero
+-- Fecha: 06/10/2025
+-- Descripcion: Stored Procedure para repartir dividendos en Voto Pura Vida (pagos)
+-- Otros detalles de los parametros
+-----------------------------------------------------------
+CREATE OR ALTER PROCEDURE[dbo].[vpvSP_RealizarTransacciones]
+	--Parametros externos
+	@userId int,
+	@crowdfoundingProposalId int,
+	@amount decimal (10,2)
+AS 
+BEGIN
+	
+	SET NOCOUNT ON
+
+	DECLARE @ErrorNumber INT, @ErrorSeverity INT, @ErrorState INT, @CustomError INT
+	DECLARE @Message VARCHAR(200)
+	DECLARE @InicieTransaccion BIT
+
+	-- declaracion de otras variables locales para hacer los insert
+	DECLARE @date datetime = getdate();
+	DECLARE @checksum varbinary(256);
+	DECLARE @subtype int, @userType int, @proposalType int;
+	DECLARE @currency int, @exchage int;
+	DECLARE @balanceProp BIGINT, @balanceUser BIGINT, @found int;
+	DECLARE @transactionProp BIGINT, @transactionUser BIGINT;
+	DECLARE @lastbalance decimal (10,2);
+	DECLARE @random int = FLOOR(RAND() * 5000) + 1;
+
+	--Asigno valores a ciertas variables 
+	SELECT @subtype = transactionSubTypeId FROM vpv_transSubTypes WHERE name = 'Pago de propuesta';
+	SELECT @userType = transTypeId FROM vpv_transTypes WHERE name = 'Withdrawal';	-- Indica el transactionType si se hace de parte del usuario es un reintegro de inversion
+	SELECT @proposalType = transTypeId FROM vpv_transTypes WHERE name = 'Transfer'; -- Indica el transactionType si se hace de parte de la propuesta sería una transferencia, en este caso de dividendos
+	SELECT @currency = currencyId FROM vpv_currencies WHERE acronym = 'CRC';	
+	SELECT @exchage =  echangeRateId FROM vpv_exchangeRates WHERE currencyId = @currency AND currentExchange = '1';
+	SELECT @found = foundId FROM vpv_founds WHERE name = 'Dinero';
+
+	SET @checkSum = HASHBYTES('SHA2_256', 
+       CONCAT(
+           CAST(@userId AS VARCHAR),
+           CAST(@crowdfoundingProposalId AS VARCHAR),
+           CAST(@amount AS VARCHAR),
+           CAST(@subtype AS VARCHAR),
+           CAST(@userType AS VARCHAR),
+           CAST(@currency AS VARCHAR),
+           CAST(@exchage AS VARCHAR),
+		   CAST(@random AS VARCHAR),
+		   CAST(@random AS VARCHAR),
+           CONVERT(VARCHAR, GETDATE(), 121)));
+
+	
+	SET @InicieTransaccion = 0
+	IF @@TRANCOUNT = 0 BEGIN
+		SET @InicieTransaccion = 1
+		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+		BEGIN TRANSACTION		
+	END
+	
+	BEGIN TRY
+		SET @CustomError = 2001
+
+		--Se crea un balance negativo en el balance de la propuesta, simulando una salida de dinero
+		INSERT INTO [dbo].[vpv_balances]
+           ([balance],[lastbalance],[lastUpdate],[checksum],[foundId],[freezeAmount])
+		VALUES
+           (-@amount, @amount, @date, @checksum,@found, NULL);
+		SET @balanceProp = SCOPE_IDENTITY();	--Asignamos el ultimo id generado en el balance 
+
+		-- Se insertan las relaciones del balance y la propuesta
+		INSERT INTO [dbo].[vpv_proposalBalance]
+           ([BalanceId],[crowdfoundingProposalId],[executionDate],[checksum])
+		VALUES
+           (@balanceProp,@crowdfoundingProposalId, @date, @checksum);
+
+		--Se realiza la transacción en sí, igaul simulando dinero de salida
+		INSERT INTO [dbo].[vpv_transactions]
+           ([amount],[description],[date],[postTime],[refNumber],[checksum],[convertedAmount],[paymentId],[transactionSubTypeId],
+           [transTypeId],[currencyId],[exchangeRateId],[balanceId],[idUser])
+		VALUES
+           (-@amount, CONCAT('Pago de dividendos al usuario', @userId),@date, @date, CONCAT('VPV-',@random),
+				@checksum, @amount, NULL, @subtype, @proposalType, @currency, @exchage, @balanceProp, NULL);
+		SET @transactionProp = SCOPE_IDENTITY();
+		
+		-- Se insertan las relaciones de la transaccion y la propuesta
+		INSERT INTO [dbo].[vpv_transactionPerPlan]
+			([crowdfoundingProposalId],[executionPlanId],[transactionId],[executionDate],[checksum])
+		VALUES
+			(@crowdfoundingProposalId, NULL, @transactionProp, @date, @checksum);
+
+		--Se inserta la simulación de ingreso de dinero hacia el usuario
+		INSERT INTO [dbo].[vpv_balances]
+           ([balance],[lastbalance],[lastUpdate],[checksum],[foundId],[freezeAmount])
+		VALUES
+           (@amount, @amount, @date, @checksum,@found, NULL);
+		SET @balanceUser = SCOPE_IDENTITY();	--Asignamos el ultimo id generado en el balance
+
+		--Se relaciona el balance con el user al que le pertenece 
+		INSERT INTO [dbo].[vpv_userBalance]
+           ([idUser],[balanceId],[checksum],[executionDate])
+		VALUES
+           (@userId,@balanceUser, @checksum,@date);
+
+		--Generamos la transaccion de ingreso de al usuario +
+		INSERT INTO [dbo].[vpv_transactions]
+           ([amount],[description],[date],[postTime],[refNumber],[checksum],[convertedAmount],[paymentId],[transactionSubTypeId],
+           [transTypeId],[currencyId],[exchangeRateId],[balanceId],[idUser])
+		VALUES
+           (@amount, CONCAT('Ingreso por dividendos de la prop', @crowdfoundingProposalId),@date, @date, 
+		   CONCAT('VPV-',@random),@checksum, @amount, NULL, @subtype, @userType, @currency,
+		   @exchage, @balanceUser, NULL);
+		SET @transactionUser = SCOPE_IDENTITY();
+
+		--Asociamos transaccion con el user
+		INSERT INTO [dbo].[vpv_transactionPerUser]
+           ([idUser],[sponsorGroupId],[entitydid],[transactionId],[executionDate],[checksum])
+		VALUES
+           (@userId, NULL,NULL, @transactionUser,@date,@checksum);
+
+
+		--Guardamos en logs el ciclo de dividendos
+		INSERT INTO [dbo].[vpv_logs]
+           ([description],[computer],[username],[trace],[referenceId1],[referenceId2],[value1],[value2]
+           ,[chechsum],[logSeverityId],[logSourceId],[logTypeId])
+		VALUES(
+		   CONCAT('Pago de dividendos de la propuesta ', @crowdfoundingProposalId,' al usuario ', @userId, ' Por un monto de ',
+		   @amount,' Realizado el ', @date, ' por la transacción numero ', @transactionUser), CONCAT('Computer ', @random),
+		   CONCAT('User', @userId), 'T1', CONCAT('Propuesta ', @crowdfoundingProposalId), CONCAT('User ',@userId),
+		   CONCAT('Monto ', @amount),CONCAT('fecha ', @date), @checksum,
+		   (SELECT logSeverityId FROM vpv_logSeverity WHERE name = 'High'),
+           (SELECT logSourceId FROM vpv_logsSources WHERE name = 'Payment Gateway'),
+           (SELECT logTypeId FROM vpv_logTypes WHERE name = 'Transaction'));
+
+					
+		IF @InicieTransaccion=1 BEGIN
+			COMMIT
+		END
+	END TRY
+	BEGIN CATCH
+		-- en esencia, lo que hay  que hacer es registrar el error real, y enviar para arriba un error custom 
+		SET @ErrorNumber = ERROR_NUMBER()
+		SET @ErrorSeverity = ERROR_SEVERITY()
+		SET @ErrorState = ERROR_STATE()
+		SET @Message = ERROR_MESSAGE()
+		
+		IF @InicieTransaccion=1 BEGIN
+			ROLLBACK
+		END
+		-- Se retorna el error a la capa superior
+		RAISERROR('%s - Error Number: %i', 
+			@ErrorSeverity, @ErrorState, @Message, @CustomError) -- hay que sustituir el @message por un error personalizado bonito, lo ideal es sacarlo de sys.messages 
+		-- en la tabla de sys.messages se pueden insertar mensajes personalizados de error, los cuales se les hace match con el numero en @CustomError
+	END CATCH	
+END
+RETURN 0
+GO
+
+
+--############################ SP 2 ####################################
+
+
+
+-----------------------------------------------------------
+-- Autor: Priscilla Romero Barquero
+-- Fecha: 06/10/2025
+-- Descripcion: Stored Procedure para verificar los inversionistas de cada propuesta, establecer su 
+--				monto de dividendo y verificar que hay metodo de pago 
+-- Otros detalles de los parametros
+-----------------------------------------------------------
+CREATE OR ALTER PROCEDURE[dbo].[vpvSP_VerificarAgreements]
+	--Parametros externos
+	@crowdfoundingProposalId INT
+AS 
+BEGIN
+	
+	SET NOCOUNT ON
+
+	DECLARE @ErrorNumber INT, @ErrorSeverity INT, @ErrorState INT, @CustomError INT
+	DECLARE @Message VARCHAR(200)
+	DECLARE @InicieTransaccion BIT
+
+	--Variables locales para verificaciones
+	DECLARE @userId int, @porcentaje decimal(10,8), @inversion decimal(18,0);
+	DECLARE @paymentMethodId INT, @sponsorAgreementId int, @amount decimal(10,2);
+
+
+	--Verificar que existen inversionistas asociados a la propuestas
+	IF NOT EXISTS (SELECT 1 FROM vpv_investorsPerProject WHERE crowdfoundingProposalId = @crowdfoundingProposalId and enable = 1)
+		RETURN 10; -- No existen investors	
+	
+	SET @InicieTransaccion = 0
+	IF @@TRANCOUNT = 0 BEGIN
+		SET @InicieTransaccion = 1
+		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+		BEGIN TRANSACTION		
+	END
+	
+	BEGIN TRY
+		SET @CustomError = 2001
+
+		DECLARE Invest_Cursor CURSOR FOR
+		SELECT idUser, sponsorAgreementId FROM vpv_investorsPerProject
+		WHERE crowdfoundingProposalId = @crowdfoundingProposalId and enable = 1;
+
+		-- Abre el cursor y se lleva al primer registro de la consulta anterior
+		OPEN Invest_Cursor;
+		FETCH NEXT FROM Invest_Cursor INTO @userId, @sponsorAgreementId; 
+
+		WHILE @@FETCH_STATUS = 0	--Mientras que el cursor no llegue al final de los registros
+		BEGIN
+			--Se obtiene el percentage de inversioón y monto invertido inicialmente
+			SELECT @porcentaje = percentage, @inversion = inversion
+			FROM vpv_sponsorAgreements
+			WHERE sponsorAgreementId = @sponsorAgreementId;
+
+			--Se verefica que exista un registro en paymentmethod para ese usuario recorrido
+			IF EXISTS (SELECT 1 FROM vpv_availablePaymentMethodsPerUser WHERE idUser = @userId AND enable = 1)
+			BEGIN
+
+				SET @amount = @inversion * @porcentaje;	--Monto a repartir
+
+				EXEC [dbo].[vpvSP_RealizarTransacciones] 
+                @userId = @userId,
+                @crowdfoundingProposalId = @crowdfoundingProposalId,
+                @amount = @amount;
+			END
+
+			FETCH NEXT FROM Invest_Cursor INTO @userId, @sponsorAgreementId;	--Continua al siguiente registro 
+		
+		END
+
+		CLOSE Invest_Cursor;
+		DEALLOCATE Invest_Cursor;	
+			
+		IF @InicieTransaccion=1 BEGIN
+			COMMIT
+		END
+	END TRY
+	BEGIN CATCH
+		-- en esencia, lo que hay  que hacer es registrar el error real, y enviar para arriba un error custom 
+		SET @ErrorNumber = ERROR_NUMBER()
+		SET @ErrorSeverity = ERROR_SEVERITY()
+		SET @ErrorState = ERROR_STATE()
+		SET @Message = ERROR_MESSAGE()
+		
+		IF @InicieTransaccion=1 BEGIN
+			ROLLBACK
+		END
+
+
+		-- Se retorna el error a la capa superior
+		RAISERROR('%s - Error Number: %i', 
+			@ErrorSeverity, @ErrorState, @Message, @CustomError) -- hay que sustituir el @message por un error personalizado bonito, lo ideal es sacarlo de sys.messages 
+		-- en la tabla de sys.messages se pueden insertar mensajes personalizados de error, los cuales se les hace match con el numero en @CustomError
+	END CATCH	
+END
+RETURN 0
+GO
+
+
+
+
+
+--############################ SP 3 ####################################
+
+
+-----------------------------------------------------------
+-- Autor: Priscilla Romero Barquero
+-- Fecha: 06/10/2025
+-- Descripcion: Stored Procedure que verifica que la propuesta está en ejecución y
+--				que existen fondos disponibles para repartir utilidades
+-- Otros detalles de los parametros
+-----------------------------------------------------------
+CREATE OR ALTER PROCEDURE[dbo].[vpvSP_RepartirDividendos]
+	--Parametros externos
+	@Proposalname nvarchar(100)
+AS 
+BEGIN
+	
+	SET NOCOUNT ON
+
+	DECLARE @ErrorNumber INT, @ErrorSeverity INT, @ErrorState INT, @CustomError INT
+	DECLARE @Message VARCHAR(200)
+	DECLARE @InicieTransaccion BIT
+
+	--Variables locales para verificaciones
+	DECLARE @crowdfoundingProposalId int, @proposalId int, @propstatusId int, @repstatusId int;
+	DECLARE @dividendos decimal (18,2);
+
+	--Asignar valores a ciertas variables
+	SELECT @propstatusId = statusId from vpv_processStatus WHERE name = 'En proceso';
+	SELECT @repstatusId = statusId from vpv_processStatus WHERE name = 'Aprobado'
+	SELECT @proposalId = proposalId FROM vpv_proposals WHERE tittle = @Proposalname and enable = 1;
+
+	--Se asocia la propuesta con la crowdfounding proposal
+	SELECT @crowdfoundingProposalId = cp.crowdfoundingProposalId 
+	FROM vpv_crowdfoundingProposals cp
+	INNER JOIN vpv_proposals p ON p.proposalId = cp.proposalId
+	WHERE p.proposalId = @proposalId AND cp.statusId = @propstatusId;
+
+	--Asociar dividendos
+	SELECT @dividendos = availablePayment FROM vpv_projectReports 
+	WHERE crowdfoundingProposalId = @crowdfoundingProposalId and statusId = @repstatusId;
+
+	--Verificar que la propuesta está ejecutandose
+	IF NOT EXISTS (SELECT 1 FROM vpv_proposals WHERE proposalId = @proposalId AND statusId = @propstatusId)	
+		RETURN 15; -- No está en proceso
+	
+	--Verificar dividendos disponibles
+    IF @dividendos <= 0
+    BEGIN
+        RETURN 20; -- No hay dividendos disponibles
+    END
+	
+	SET @InicieTransaccion = 0
+	IF @@TRANCOUNT = 0 BEGIN
+		SET @InicieTransaccion = 1
+		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+		BEGIN TRANSACTION		
+	END
+	
+	BEGIN TRY
+		SET @CustomError = 2001
+
+		IF EXISTS (SELECT 1 FROM vpv_projectReports where crowdfoundingProposalId = @crowdfoundingProposalId
+		AND statusId = @repstatusId)
+		BEGIN
+			EXEC [dbo].[vpvSP_VerificarAgreements]
+                @crowdfoundingProposalId = @crowdfoundingProposalId;
+		END 	
+			
+		IF @InicieTransaccion=1 BEGIN
+			COMMIT
+		END
+	END TRY
+	BEGIN CATCH
+		-- en esencia, lo que hay  que hacer es registrar el error real, y enviar para arriba un error custom 
+		SET @ErrorNumber = ERROR_NUMBER()
+		SET @ErrorSeverity = ERROR_SEVERITY()
+		SET @ErrorState = ERROR_STATE()
+		SET @Message = ERROR_MESSAGE()
+		
+		IF @InicieTransaccion=1 BEGIN
+			ROLLBACK
+		END
+
+
+		-- Se retorna el error a la capa superior
+		RAISERROR('%s - Error Number: %i', 
+			@ErrorSeverity, @ErrorState, @Message, @CustomError) -- hay que sustituir el @message por un error personalizado bonito, lo ideal es sacarlo de sys.messages 
+		-- en la tabla de sys.messages se pueden insertar mensajes personalizados de error, los cuales se les hace match con el numero en @CustomError
+	END CATCH	
+END
+RETURN 0
+GO
+
+
+-- Parámetros de prueba
+DECLARE @Proposalname nvarchar(100) = 'Proyecto de reciclaje en comunidades rurales'; 
