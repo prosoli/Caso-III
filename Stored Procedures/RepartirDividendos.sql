@@ -1,12 +1,12 @@
-
---############################ SP 1 ####################################
-
-
+--######################### SP 1 ##########################
 -----------------------------------------------------------
 -- Autor: Priscilla Romero Barquero
 -- Fecha: 06/10/2025
--- Descripcion: Stored Procedure para repartir dividendos en Voto Pura Vida (pagos)
--- Otros detalles de los parametros
+-- Descripcion: Registra todo el flujo de entrada/salida de dinero para el usuario y propuesta 
+--				en especifico (transacciones y balances)
+-- @userId: Usuario al cual recibirá una transacción por dividendos (genera transacción y modifica balance)
+-- @crowdfoundingProposalId:  Propuesta de la cual salen los montos de los dividendos (genera transacción y modifica balance)
+-- @amount:  Monto total del dividendo
 -----------------------------------------------------------
 CREATE OR ALTER PROCEDURE[dbo].[vpvSP_RealizarTransacciones]
 	--Parametros externos
@@ -25,7 +25,7 @@ BEGIN
 	-- declaracion de otras variables locales para hacer los insert
 	DECLARE @date datetime = getdate();
 	DECLARE @checksum varbinary(256);
-	DECLARE @subtype int, @userType int, @proposalType int;
+	DECLARE @subtype int, @transType int;
 	DECLARE @currency int, @exchage int;
 	DECLARE @balanceProp BIGINT, @balanceUser BIGINT, @found int;
 	DECLARE @transactionProp BIGINT, @transactionUser BIGINT;
@@ -34,11 +34,11 @@ BEGIN
 
 	--Asigno valores a ciertas variables 
 	SELECT @subtype = transactionSubTypeId FROM vpv_transSubTypes WHERE name = 'Pago de propuesta';
-	SELECT @userType = transTypeId FROM vpv_transTypes WHERE name = 'Withdrawal';	-- Indica el transactionType si se hace de parte del usuario es un reintegro de inversion
-	SELECT @proposalType = transTypeId FROM vpv_transTypes WHERE name = 'Transfer'; -- Indica el transactionType si se hace de parte de la propuesta sería una transferencia, en este caso de dividendos
+	SELECT @transType = transTypeId FROM vpv_transTypes WHERE name = 'Transfer'; -- Indica el transactionType si se hace de parte de la propuesta sería una transferencia, en este caso de dividendos
 	SELECT @currency = currencyId FROM vpv_currencies WHERE acronym = 'CRC';	
 	SELECT @exchage =  echangeRateId FROM vpv_exchangeRates WHERE currencyId = @currency AND currentExchange = '1';
 	SELECT @found = foundId FROM vpv_founds WHERE name = 'Dinero';
+	
 
 	SET @checkSum = HASHBYTES('SHA2_256', 
        CONCAT(
@@ -46,7 +46,7 @@ BEGIN
            CAST(@crowdfoundingProposalId AS VARCHAR),
            CAST(@amount AS VARCHAR),
            CAST(@subtype AS VARCHAR),
-           CAST(@userType AS VARCHAR),
+           CAST(@transType AS VARCHAR),
            CAST(@currency AS VARCHAR),
            CAST(@exchage AS VARCHAR),
 		   CAST(@random AS VARCHAR),
@@ -83,7 +83,7 @@ BEGIN
            [transTypeId],[currencyId],[exchangeRateId],[balanceId],[idUser])
 		VALUES
            (-@amount, CONCAT('Pago de dividendos al usuario', @userId),@date, @date, CONCAT('VPV-',@random),
-				@checksum, @amount, NULL, @subtype, @proposalType, @currency, @exchage, @balanceProp, NULL);
+				@checksum, @amount, NULL, @subtype, @transType, @currency, @exchage, @balanceProp, NULL);
 		SET @transactionProp = SCOPE_IDENTITY();
 		
 		-- Se insertan las relaciones de la transaccion y la propuesta
@@ -111,7 +111,7 @@ BEGIN
            [transTypeId],[currencyId],[exchangeRateId],[balanceId],[idUser])
 		VALUES
            (@amount, CONCAT('Ingreso por dividendos de la prop', @crowdfoundingProposalId),@date, @date, 
-		   CONCAT('VPV-',@random),@checksum, @amount, NULL, @subtype, @userType, @currency,
+		   CONCAT('VPV-',@random),@checksum, @amount, NULL, @subtype, @transType, @currency,
 		   @exchage, @balanceUser, NULL);
 		SET @transactionUser = SCOPE_IDENTITY();
 
@@ -160,20 +160,19 @@ RETURN 0
 GO
 
 
---############################ SP 2 ####################################
-
-
-
+--######################### SP 2 ##########################
 -----------------------------------------------------------
 -- Autor: Priscilla Romero Barquero
 -- Fecha: 06/10/2025
--- Descripcion: Stored Procedure para verificar los inversionistas de cada propuesta, establecer su 
---				monto de dividendo y verificar que hay metodo de pago 
--- Otros detalles de los parametros
+-- Descripcion: Verifica los inversionistas de cada propuesta, monto invertido
+--				y establece el monto a repartir segun inversion y utilidades disponibles
+-- @crowdfoundingProposalId: Identificador de la propuesta para revisar sus inversionistas
+-- @dividendos: Monto de utilidades disponibles segun la propuesta específica
 -----------------------------------------------------------
 CREATE OR ALTER PROCEDURE[dbo].[vpvSP_VerificarAgreements]
 	--Parametros externos
-	@crowdfoundingProposalId INT
+	@crowdfoundingProposalId INT,
+	@dividendos decimal(10,2)
 AS 
 BEGIN
 	
@@ -184,13 +183,22 @@ BEGIN
 	DECLARE @InicieTransaccion BIT
 
 	--Variables locales para verificaciones
-	DECLARE @userId int, @porcentaje decimal(10,8), @inversion decimal(18,0);
+	DECLARE @userId int, @inversion decimal(10,2), @totalInversiones decimal (10,2);
 	DECLARE @paymentMethodId INT, @sponsorAgreementId int, @amount decimal(10,2);
 
 
 	--Verificar que existen inversionistas asociados a la propuestas
 	IF NOT EXISTS (SELECT 1 FROM vpv_investorsPerProject WHERE crowdfoundingProposalId = @crowdfoundingProposalId and enable = 1)
-		RETURN 10; -- No existen investors	
+		RETURN 10; -- No existen investors
+		
+	-- Hacer la suma del monto total invertido en una propuesta para poder establecer el monto a repartir a los inversionistas
+	SELECT @totalInversiones = SUM(sa.inversion)
+	FROM vpv_sponsorAgreements sa
+	INNER JOIN vpv_investorsPerProject ip ON sa.sponsorAgreementId = ip.sponsorAgreementId
+	WHERE ip.crowdfoundingProposalId = @crowdfoundingProposalId
+    AND ip.enable = 1 -- Solo los inversionistas habilitados
+    AND sa.enable = 1; -- Solo sponsors habilitados
+
 	
 	SET @InicieTransaccion = 0
 	IF @@TRANCOUNT = 0 BEGIN
@@ -212,16 +220,17 @@ BEGIN
 
 		WHILE @@FETCH_STATUS = 0	--Mientras que el cursor no llegue al final de los registros
 		BEGIN
-			--Se obtiene el percentage de inversioón y monto invertido inicialmente
-			SELECT @porcentaje = percentage, @inversion = inversion
+			--Se obtiene el monto invertido inicialmente
+			SELECT @inversion = inversion
 			FROM vpv_sponsorAgreements
 			WHERE sponsorAgreementId = @sponsorAgreementId;
 
 			--Se verefica que exista un registro en paymentmethod para ese usuario recorrido
 			IF EXISTS (SELECT 1 FROM vpv_availablePaymentMethodsPerUser WHERE idUser = @userId AND enable = 1)
 			BEGIN
-
-				SET @amount = @inversion * @porcentaje;	--Monto a repartir
+				
+				-- Monto a repartir para dividendo
+				SET @amount = (@inversion/ @totalInversiones)*@dividendos;	--Monto a repartir
 
 				EXEC [dbo].[vpvSP_RealizarTransacciones] 
                 @userId = @userId,
@@ -264,16 +273,13 @@ GO
 
 
 
-
---############################ SP 3 ####################################
-
-
+--######################### SP 3 ##########################
 -----------------------------------------------------------
 -- Autor: Priscilla Romero Barquero
 -- Fecha: 06/10/2025
--- Descripcion: Stored Procedure que verifica que la propuesta está en ejecución y
---				que existen fondos disponibles para repartir utilidades
--- Otros detalles de los parametros
+-- Descripcion: Verifica que la propuesta está en ejecución, con fiscalizaciones aprobadas 
+--				y que existen fondos disponibles para repartir utilidades
+-- @Proposalname: Nombre de la propuesta de la cual se quiere repartir los dividendos
 -----------------------------------------------------------
 CREATE OR ALTER PROCEDURE[dbo].[vpvSP_RepartirDividendos]
 	--Parametros externos
@@ -289,7 +295,7 @@ BEGIN
 
 	--Variables locales para verificaciones
 	DECLARE @crowdfoundingProposalId int, @proposalId int, @propstatusId int, @repstatusId int;
-	DECLARE @dividendos decimal (18,2);
+	DECLARE @dividendos decimal (10,2);
 
 	--Asignar valores a ciertas variables
 	SELECT @propstatusId = statusId from vpv_processStatus WHERE name = 'En proceso';
@@ -308,12 +314,16 @@ BEGIN
 
 	--Verificar que la propuesta está ejecutandose
 	IF NOT EXISTS (SELECT 1 FROM vpv_proposals WHERE proposalId = @proposalId AND statusId = @propstatusId)	
-		RETURN 15; -- No está en proceso
+		RETURN 2; -- No está en proceso
+
+	--Verificar que las propuesta tenga fiscalizaciones aprobadas
+	IF NOT EXISTS (SELECT 1 FROM vpv_ProposalTracking WHERE proposalId = @proposalId AND statusId = @propstatusId)	
+		RETURN 5; -- No está en proceso
 	
 	--Verificar dividendos disponibles
     IF @dividendos <= 0
     BEGIN
-        RETURN 20; -- No hay dividendos disponibles
+        RETURN 7; -- No hay dividendos disponibles
     END
 	
 	SET @InicieTransaccion = 0
@@ -330,7 +340,8 @@ BEGIN
 		AND statusId = @repstatusId)
 		BEGIN
 			EXEC [dbo].[vpvSP_VerificarAgreements]
-                @crowdfoundingProposalId = @crowdfoundingProposalId;
+                @crowdfoundingProposalId = @crowdfoundingProposalId,
+				@dividendos = @dividendos;
 		END 	
 			
 		IF @InicieTransaccion=1 BEGIN
@@ -357,7 +368,3 @@ BEGIN
 END
 RETURN 0
 GO
-
-
--- Parámetros de prueba
-DECLARE @Proposalname nvarchar(100) = 'Proyecto de reciclaje en comunidades rurales'; 
