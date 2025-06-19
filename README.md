@@ -1142,8 +1142,10 @@ INSERT INTO [dbo].[vpv_statusVoting]
 ### Dashboard principal
   <details>
   <summary>Desplegar información</summary>
-    ![alt text](assets/dashboardNoCrowfounding.png)
+    
   </details>
 
 </details>
+
+![alt text](assets/dashboardNoCrowfounding.png)
 
