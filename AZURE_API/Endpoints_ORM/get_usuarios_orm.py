@@ -1,18 +1,16 @@
 import azure.functions as func
 import logging
 import json
-from Models import CaipiUser
+from Models import users
 from database import SessionLocal
 
-
-
-
+#En este caso no se define si es GET o POST por lo tanto acepta cualquier metodo
 def get_usuarios_orm(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
 
     session = SessionLocal()
     try:
-        users = session.query(CaipiUser.username).filter_by(active=True).limit(5).all()#obtengo el username de los primero 5 activos
+        users = session.query(users.username).filter_by(active=True).limit(5).all()#obtengo el username de los primero 5 activos
         print(users)
         result = [
             {

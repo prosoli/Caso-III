@@ -3,6 +3,7 @@ import azure.functions as func
 from Endpoints_SP.get_usuarios_sp import get_usuarios_sp
 
 from Endpoints_ORM.get_usuarios_orm import get_usuarios_orm
+from Endpoints_ORM.configurarVotacion_orm import configurarVotacionORM
 
 app = func.FunctionApp()
 
@@ -15,6 +16,9 @@ app.route(route="get_usuarios_sp", auth_level=func.AuthLevel.ANONYMOUS)(get_usua
 
 #EndPoint con ORM
 app.route(route="get_usuarios_orm", auth_level=func.AuthLevel.ANONYMOUS)(get_usuarios_orm)
+
+#Configurar votaciones por ORM
+app.route(route="configurarVotacionORM", auth_level=func.AuthLevel.ANONYMOUS)(configurarVotacionORM)
 
 
 
