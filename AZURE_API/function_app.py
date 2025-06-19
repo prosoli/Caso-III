@@ -9,12 +9,14 @@ app = func.FunctionApp()
 
 #Aca se definen las rutas que seran parte del api
 
-#EndPoint por SP
+#EndPoint por SP------------------------------------------------------------------------------------
+#Prueba
 app.route(route="get_usuarios_sp", auth_level=func.AuthLevel.ANONYMOUS)(get_usuarios_sp) #EJEMPLO poner el nombre del archivo importado
 
 
 
-#EndPoint con ORM
+#EndPoint con ORM ----------------------------------------------------------------------------------
+#Prueba
 app.route(route="get_usuarios_orm", auth_level=func.AuthLevel.ANONYMOUS)(get_usuarios_orm)
 
 #Configurar votaciones por ORM
