@@ -1136,6 +1136,12 @@ INSERT INTO [dbo].[vpv_statusVoting]
 ### Inicio de Sesión
   <details>
   <summary>Desplegar información</summary>
+    en construccion
+  </details>
+
+### Dashboard principal
+  <details>
+  <summary>Desplegar información</summary>
     ![alt text](assets.dashboardCrowfounding.png)
   </details>
 
