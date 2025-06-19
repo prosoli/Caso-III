@@ -30,7 +30,7 @@
 
 🌎 [Ir al Implementación del API](#implementación-del-api)
 
-🌎 Endpoints implementados por Stored Procedures
+🌎 [Endpoints implementados por Stored Procedures](#endpoints-implementados-por-Stored-Procedures)
 
 🌎 [Endpoints implementados por ORM](#endpoints-implementados-por-ORM)
 
