@@ -394,16 +394,16 @@ GO
 -- IMPORTANTE
 -- Como se cambió la tabla de vpv_identitydocs, si están usando base de datos antigua, ejecuten el siguiente comando, ahí está como comentario
 -- para que no interfiera en caso que estén usando la nueva, pero en cualquier caso quitan los comentarios y la tabla estaría actualizada.
-ALTER TABLE vpv_identitydocs DROP CONSTRAINT FK_vpv_identitydocs_vpv_Users;
-GO
-ALTER TABLE vpv_identitydocs DROP COLUMN IF EXISTS userid;
-GO
-ALTER TABLE vpv_identitydocs DROP COLUMN IF EXISTS entitiyid;
-GO
-ALTER TABLE vpv_identitydocs ADD referencevalue INT NULL;
-GO
-ALTER TABLE vpv_identitydocs ADD referenceid VARCHAR(25) NULL;
-GO
+-- ALTER TABLE vpv_identitydocs DROP CONSTRAINT FK_vpv_identitydocs_vpv_Users;
+-- GO
+-- ALTER TABLE vpv_identitydocs DROP COLUMN IF EXISTS userid;
+-- GO
+-- ALTER TABLE vpv_identitydocs DROP COLUMN IF EXISTS entitiyid;
+-- GO
+-- ALTER TABLE vpv_identitydocs ADD referencevalue INT NULL;
+-- GO
+-- ALTER TABLE vpv_identitydocs ADD referenceid VARCHAR(25) NULL;
+-- GO
 
 -- Inserciones para vpv_identitystates (Estados de los documentos)
 INSERT INTO vpv_identitystates (name, description)
