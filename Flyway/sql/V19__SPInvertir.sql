@@ -70,9 +70,9 @@ BEGIN
 	--Obtencion de status del pago
 	SELECT TOP 1 @statusId = statusId
 	FROM vpv_processStatus 
-	WHERE name = 'Pendiente de revisión'
+	WHERE name = 'Pendiente de revisiÃ³n'
 
-	-- Validar que el proyecto esté en estado aprobado para inversión
+	-- Validar que el proyecto estÃ© en estadoÂ aprobado para inversiÃ³n
 	SELECT TOP 1 @idPropuesta = p.proposalId, @budget = p.budget
 	FROM vpv_proposals p
 	INNER JOIN vpv_processStatus ps on ps.statusId = p.statusId
@@ -148,12 +148,12 @@ BEGIN
 	END
 	
 	-- Revision del tipo de acuerdo al ser de donacion este no recibe porcentaje de acciones solo aporta al budget
-	IF @agreementType = 'Crowdfunding de donación'
+	IF @agreementType = 'Crowdfunding de donaciÃ³n'
 	BEGIN
 		SET @poseePorcentaje = 0;
 		SET @share = 0;
 	END
-	ELSE IF @agreementType = 'Crowdfunding de inversión'
+	ELSE IF @agreementType = 'Crowdfunding de inversiÃ³n'
 	BEGIN
 		SET @poseePorcentaje = 1;
 		SET @share = 1;
@@ -171,7 +171,7 @@ BEGIN
 	FROM vpv_transactions t
 	INNER JOIN vpv_transSubTypes st on st.transactionSubTypeId = t.transactionSubTypeId
 	WHERE t.refNumber = @transactionrefNumber and t.idUser= @idUsuario and t.amount = @monto
-		and (st.name = 'Inversión de Usuario' OR st.name = 'Inversión de Entidad' OR st.name = 'Inversión de Sponsor' 
+		and (st.name = 'InversiÃ³n de Usuario' OR st.name = 'InversiÃ³n de Entidad' OR st.name = 'InversiÃ³n de Sponsor' 
 		OR st.name = 'Inversion a un plan')
 
 	IF @transactionId IS NULL
@@ -209,14 +209,14 @@ BEGIN
 		--Valido si en relacion al budget no se genera overflow
 		IF @monto <= (@budget - @montoTotal)
 		BEGIN
-			PRINT 'FFF5';
+			
 
 			IF @poseePorcentaje = 1
 			BEGIN
 				IF @porcentajeTotal < 100
 				BEGIN
 					SET @porcentajeInversion = @monto * 100.00 / @budget; 
-					-- Calculo el porcentaje en relación al monto invertido y el budget
+					-- Calculo el porcentaje en relaciÃ³n al monto invertido y el budget
 				END
 				ELSE
 				BEGIN
@@ -237,23 +237,16 @@ BEGIN
 		VALUES (@recurrencia, @recurrencia, @repetition, @finalDate, @paymentDate);
 
 		SET @idSchedule = SCOPE_IDENTITY();
-		--CALCULO DEL CHECKSUM
-		SET @checksum = CONVERT(NVARCHAR(255), 
-			HASHBYTES('SHA2_256', 
-				CONCAT(
-					@finalDate, @currencyId, @porcentajeInversion, @monto, 	@share, @investmentTypeId, @crowfoundingId, @propuesta, @idSchedule
-				)
-			), 1
-		);
+		
 
 		--INSERCION DE EL AGREEMENT COMO REGISTRO DE INVERSION
 		INSERT INTO [dbo].[vpv_sponsorAgreements]
            ([enable],[checksum],[startDate] ,[finalDate] ,[signedDate],[deleted]
 		   ,[currencyId],[percentage] ,[amount] ,[shares],[sponsorAgreementTypeId]
-           ,[crowdfoundingProposalId],[name],[noReward],[scheduleId],[inversion],[checksum])
+           ,[crowdfoundingProposalId],[name],[noReward],[scheduleId],[inversion])
 		VALUES
            (1,@checksum,GETDATE(), @finalDate, GETDATE(),0,@currencyId,@porcentajeInversion,@monto,@share,
-		   @investmentTypeId,@crowfoundingId,@propuesta,@share,@idSchedule,@monto,@checksum );
+		   @investmentTypeId,@crowfoundingId,@propuesta,@share,@idSchedule,@monto);
 
 		SET @agreementId = @@IDENTITY;
 
@@ -314,7 +307,7 @@ BEGIN
 				RETURN;
 			END
 
-			-- Insertar detalle de revisión
+			-- Insertar detalle de revisiÃ³n
 			INSERT INTO vpv_scheduleDetails (
 				baseDate, datepart, lastExecute, nextExecute, scheduleId)
 			VALUES (@paymentDate,@recurrencia,	@currentDate,@nextDate,@idSchedule);
