@@ -2,7 +2,15 @@ import azure.functions as func
 import logging
 import json
 from database import SessionLocal
+from sqlalchemy import text #utilizada para enviar texto a la sesion
+import os #utilizado para variables de entorno
+from dotenv import load_dotenv
 
+
+# Carga las variables del .env
+load_dotenv()
+#variables de entorno
+clave = os.getenv("CLAVECEDULA")
 
 #Importacion de las tablas involucradas en el proceso
 from Models.users import VpvUser
@@ -30,35 +38,36 @@ from Models.Configuracion_Votacion.questions import VpvQuestions
 from Models.Configuracion_Votacion.rules import Rule
 from Models.Configuracion_Votacion.restrictions import VotingRestriction
 from Endpoints_ORM.encrypt_checksum import encrypt_checksum
+from Endpoints_ORM.validarPermisos import validar_permiso
 
 '''
-Configurar votacion: Se encarga de configurar los parametros de una votacion para una propuesta especifica.
-En terminos de este sistema se configura hacia una version de la poblacion
-Entradas:
-- proposalVersion: Nombre de la propuesta a votar(El formato obligatorio es 2025-06-16T12:00:00Z).
-- openDate: Fecha y hora de apertura de la votación.
-- closeDate: Fecha y hora de cierre de la votación.
-- creationDate: Fecha en que se crea la configuración de votación.
-- VotingType: Tipo de votación (por ejemplo, "Unica").
-- description: Descripción general de la votación.
-- weight: Indica si la votación tendrá ponderación (0 o 1)Boleano.
-- ReminderType: Tipo de recordatorio a utilizar (ej. Email, Notificación).
-- ClosureTypes: Define cómo se cierra la votación (ej. "hasta que los votantes terminen").
-- VotingReasons: Justificación o motivo de la votación.
+    Configurar votacion: Se encarga de configurar los parametros de una votacion para una propuesta especifica.
+    En terminos de este sistema se configura hacia una version de la poblacion
+    Parámetros del cuerpo de la solicitud (req_body) de formato JSON:
+    - proposalVersion: Nombre de la propuesta a votar(El formato obligatorio es 2025-06-16T12:00:00Z).
+    - openDate: Fecha y hora de apertura de la votación.
+    - closeDate: Fecha y hora de cierre de la votación.
+    - creationDate: Fecha en que se crea la configuración de votación.
+    - VotingType: Tipo de votación (por ejemplo, "Unica").
+    - description: Descripción general de la votación.
+    - weight: Indica si la votación tendrá ponderación (0 o 1)Boleano.
+    - ReminderType: Tipo de recordatorio a utilizar (ej. Email, Notificación).
+    - ClosureTypes: Define cómo se cierra la votación (ej. "hasta que los votantes terminen").
+    - VotingReasons: Justificación o motivo de la votación.
 
-Listas asociadas:
-- targetPopulations:
-    - name: Nombre del grupo poblacional.
-    - weight: Valor de ponderación asignado.
-- impactZones:
-    - name: Nombre de la zona.
-- questions:
-    - name: Texto de la pregunta.
-    - orderBy: Orden de aparición en la boleta.
-- rules:
-    - name: Nombre o título de la regla.
-- restrictions:
-    - name: Descripción de la restricción.
+    Listas asociadas:
+    - targetPopulations:
+        - name: Nombre del grupo poblacional.
+        - weight: Valor de ponderación asignado.
+    - impactZones:
+        - name: Nombre de la zona.
+    - questions:
+        - name: Texto de la pregunta.
+        - orderBy: Orden de aparición en la boleta.
+    - rules:
+        - name: Nombre o título de la regla.
+    - restrictions:
+        - name: Descripción de la restricción.
 '''
 
 def configurarVotacionORM(req: func.HttpRequest) -> func.HttpResponse:
@@ -75,6 +84,16 @@ def configurarVotacionORM(req: func.HttpRequest) -> func.HttpResponse:
     try:
         session = SessionLocal()
         req_body = req.get_json()
+        idcard = req_body.get("idCard")
+        #Validacion del usuario, en este caso debe ser un proponente encargado de la configuracion y creacion de propuestas
+        try:
+            validar_permiso(session, idcard, 'Proponente')
+        except PermissionError as e:
+            return func.HttpResponse(
+                json.dumps({"error": str(e)}),
+                status_code=403,
+                mimetype="application/json"
+            )
 
         #Realiza la insercio de los datos que corresponden a la configuracion general de la votacion, sin contar las listas recibidas
         objInsertado = InsertVotingConfing(req_body, session)
@@ -126,6 +145,14 @@ def configurarVotacionORM(req: func.HttpRequest) -> func.HttpResponse:
 
         if not InsertRestrictions(restrictions, objInsertado.idVotingConfig,session):
             return func.HttpResponse("No se insertaron de forma correcta las restricciones", status_code=500)
+        
+        #Obtencion de la coleccion de votantes directos definidas en la configuracion
+        votantes = req_body.get("allowedVoters")
+        if not votantes or not isinstance(votantes, list):
+            return func.HttpResponse("Votantes inválidas o faltantes", status_code=400)
+
+        if not InsertAllowedVoters(votantes, objInsertado.idVotingConfig,session):
+            return func.HttpResponse("No se insertaron de forma correcta los votantens directos", status_code=500)
 
         #Con la finalidad de hacer transacciones atomicas, se realiza el commit de la session creada hasta el final de la operacion es decir que haya pasado todas las validaciones
         session.commit()
@@ -384,7 +411,10 @@ Entradas:   Lista de lOS votantes directo
             session creada para la transaccion
 """
 def InsertAllowedVoters(voters, idVotingConfig,session):
-    #recorro las zonas brindados por el usuario para ir encontrando su id y por ultimo insertarlos
+    #abro la llave para desencriptar las cedulas
+    sql = f"OPEN SYMMETRIC KEY llavecedula DECRYPTION BY PASSWORD = '{clave}'"
+    session.execute(text(sql))
+
     for voter in voters:
         #validaciones inciales del nombre de la zona
         idCard = voter.get("idCard")
@@ -398,17 +428,27 @@ def InsertAllowedVoters(voters, idVotingConfig,session):
         #votantes--------------------------------
         
         # Obtengo el objeto identificado
-        userId = session.query(VpvUser.idUser).filter_by(id_card=idCard, enable=True).first()
+        result = session.execute(text("""
+            SELECT idUser
+            FROM vpv_Users
+            WHERE enable = 1
+            AND CONVERT(nvarchar(50), DECRYPTBYKEY(id_card)) = :idCard
+        """), {'idCard': idCard})
 
+        # Obtener el primer resultado
+        row = result.fetchone()
+        userId = row[0] if row else None
+
+        
         if not userId:
-            raise ValueError(f"No se encontró el usuarios ingresado: {idCard}")
+            raise ValueError(f"No se encontró el usuarios ingresado: {idCard}, o el mismo no esta activo")
         
         #Obtencion del blind token
 
-        #Insert de la zona de impacto en la tabla
+        #Insert de los usuarios en la tabla
         userObj=AllowedVoter(
             idVotingConfig=idVotingConfig,
-            idBlindToken=userId[0],
+            idBlindToken=userId,
             enable=True
         )
 
@@ -420,6 +460,8 @@ def InsertAllowedVoters(voters, idVotingConfig,session):
         userObj.checksum = checksum;
        
         session.add(userObj)
+    # Cerrar la llave
+    session.execute(text("CLOSE SYMMETRIC KEY llavecedula;"))    
         
 
     return True
