@@ -1,6 +1,3 @@
-USE [puravidap]
-GO
-
 /****** Object:  View [dbo].[vw_Top5VotingResultsSummary]    Script Date: 25/6/2025 11:44:06 ******/
 SET ANSI_NULLS ON
 GO
