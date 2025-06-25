@@ -1,6 +1,6 @@
 {
-	
-    "proposalVersion": "App de salud pública - prototipo",
+	"idCard":"239675389",
+    "proposalVersion": "Vigilancia comunitaria - Conectividad en tiempo real",
     "openDate": "2025-06-16T12:00:00Z",
     "closeDate": "2025-07-16T12:00:00Z",
     "creationDate": "2025-06-10T08:00:00Z",
@@ -20,16 +20,16 @@
 	"impactZones":[
 	
 		{
-			"name":"Zona Costera"
+			"name":"Reducción de consumo hídrico"
 		},
 		{
-			"name":"Zona Urbana"
+			"name":"Extensión temporal del proyecto"
 		}
 	],
 	"questions":[
 	
 		{
-			"name":"¿Cuál es tu medio de transporte principal?",
+			"name":"¿Cuál es su fuente principal de agua potable?",
 			"orderBy":1
 		}
 	],
@@ -55,6 +55,18 @@
 		},
 		{
 			"name":"Correo debe contener dominio @tec.ac.cr"
+		}
+	],
+    "allowedVoters":[
+	
+		{
+			"idCard":"769616758"
+		},
+		{
+			"idCard":"239675389"
+		},
+		{
+			"idCard":"233644610"
 		}
 	]
 }
