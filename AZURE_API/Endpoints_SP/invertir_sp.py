@@ -14,16 +14,16 @@ conn_str = os.environ.get("SQL_CONNECTION_STRING")
     Ejecuta el procedimiento almacenado 'vpvSP_InvertirProyecto' para registrar una inversión en una propuesta activa por parte de un ciudadano.
 
     Parámetros del cuerpo de la solicitud (req_body) de formato JSON:
-    - propuesta (str): Nombre de la propuesta en la que se desea invertir.
-    - idCard (str): Número de identificación del inversor en este caso un ciudadano.
-    - agreementType (str): Tipo de acuerdo (ej. "Crowdfunding de donación").
-    - monto (float): Monto de dinero que se desea invertir.
-    - transactionrefNumber (str): Número de referencia de la transacción.
-    - finalDate (str): Fecha de finalización del acuerdo (formato 'YYYY-MM-DD').
-    - paymentDate (str): Fecha del primer pago (formato 'YYYY-MM-DD').
-    - currency (str): Tipo de moneda utilizada, el acronimo de la moneda.
-    - recurrencia (str): Frecuencia de pag0 debe ser un numero entero y positivoo.
-    - plazosPago (int): Número de pagos o plazos para cubrir el monto total.
+    - propuesta: Nombre de la propuesta en la que se desea invertir.
+    - idCard: Número de identificación del inversor en este caso un ciudadano.
+    - agreementType: Tipo de acuerdo (ej. "Crowdfunding de donación").
+    - monto: Monto de dinero que se desea invertir.
+    - transactionrefNumber: Número de referencia de la transacción.
+    - finalDate: Fecha de finalización del acuerdo (formato 'YYYY-MM-DD').
+    - paymentDate: Fecha del primer pago (formato 'YYYY-MM-DD').
+    - currency: Tipo de moneda utilizada, el acronimo de la moneda.
+    - recurrencia: Frecuencia de pag0 debe ser un numero entero y positivoo.
+    - plazosPago: Número de pagos o plazos para cubrir el monto total.
 
     Retorna:
     - HttpResponse con mensaje de éxito o error según el resultado del procedimiento. Es decir, el mensaje que retorne el sp
