@@ -1,4 +1,4 @@
---M醩 seeding para el funcionamiento del SP de repartir dividendos 
+--M谩s seeding para el funcionamiento del SP de repartir dividendos 
 
 -------------------------
 --INVESTOR PER PROJECT
@@ -50,9 +50,9 @@ INSERT INTO [dbo].[vpv_docs]
            ([identitydocsid],[formatid],[docstypeid],[docstateid],[archive],[filename],[date],[enable]
            ,[startdate],[nextcheckdate],[semantic_category],[checksum])
      VALUES
-		(1, 1, 3, 3, 0x25504446, 'reporte de fiscalizaci髇 1.pdf', GETDATE(), 1, GETDATE(), '2025-12-20', 'reporte de fiscalizaci髇 de la propuesta 1 ', CHECKSUM('Dato de prueba')),
-		(2, 1, 3, 3, 0x25504446, 'reporte fiscalizaci髇 2.pdf', GETDATE(), 1, GETDATE(), '2025-12-20', 'reporte de fiscalizaci髇 de la propuesta 1', CHECKSUM('Dato de prueba')),
-		(3, 1, 3, 3, 0xFFD8FFE0, 'reporte fiscalizaci髇 3.jpg', GETDATE(), 1, GETDATE(), '2025-12-20', 'reporte de fiscalizaci髇 de la propuesta 1', CHECKSUM('Dato de prueba'));
+		(1, 1, 3, 3, 0x25504446, 'reporte de fiscalizaci贸n 1.pdf', GETDATE(), 1, GETDATE(), '2025-12-20', 'reporte de fiscalizaci贸n de la propuesta 1 ', CHECKSUM('Dato de prueba')),
+		(2, 1, 3, 3, 0x25504446, 'reporte fiscalizaci贸n 2.pdf', GETDATE(), 1, GETDATE(), '2025-12-20', 'reporte de fiscalizaci贸n de la propuesta 1', CHECKSUM('Dato de prueba')),
+		(3, 1, 3, 3, 0xFFD8FFE0, 'reporte fiscalizaci贸n 3.jpg', GETDATE(), 1, GETDATE(), '2025-12-20', 'reporte de fiscalizaci贸n de la propuesta 1', CHECKSUM('Dato de prueba'));
 
 
 ----------------------
@@ -62,7 +62,7 @@ INSERT INTO [dbo].[vpv_docs]
 INSERT INTO [dbo].[vpv_ProposalTracking]
            ([userId],[proposalId],[creationDate],[enable],[deleted],[statusId],[docid],[tittle],[scheduleId],[description])
      VALUES
-           (1, 1, GETDATE(), 1, 0, 5, 4, 'Fiscalizaci髇 de propuesta', 1, NULL),
-           (2, 2, GETDATE(), 1, 0, 5, 5, 'Fiscalizaci髇 de propuesta', 1, NULL),
-           (3, 3, GETDATE(), 1, 0, 5, 6, 'Fiscalizaci髇 de propuesta', 1, NULL);
+           (1, 1, GETDATE(), 1, 0, 5, 4, 'Fiscalizaci贸n de propuesta', 1, NULL),
+           (2, 2, GETDATE(), 1, 0, 5, 5, 'Fiscalizaci贸n de propuesta', 1, NULL),
+           (3, 3, GETDATE(), 1, 0, 5, 6, 'Fiscalizaci贸n de propuesta', 1, NULL);
 
