@@ -1259,17 +1259,1319 @@ Esta estructura permite mantener el código organizado, separando claramente las
 </details>
 
   ### Endpoints implementados por Stored Procedures
+
+Los endpoints de esta sección utilizan procedimientos almacenados (Stored Procedures) en SQL Server para ejecutar la lógica del sistema directamente desde la base de datos. Esta estrategia permite manejar operaciones complejas de forma eficiente, segura y con control transaccional.
+
+Herramientas utilizadas
+
+- Azure Functions Core Tools y Visual Studio Code: para ejecutar funciones serverless localmente.
+
+- Python con pyodbc: para conectar y enviar datos a SQL Server desde los endpoints.
+
+- SQL Server: donde se almacenan y ejecutan los procedimientos.
+
+- Thunder Client o Postman: para probar los endpoints HTTP de forma local.
+
   ---
-  <details>
-  <summary>Desplegar información</summary>
-    En construccion
+<details>
+<summary>Ver endpoints</summary>
+	
+#### Invertir
+  
+<details>
+<summary>Desplegar información</summary>
+	
+Esta funcionalidad permite a un ciudadano realizar inversiones en propuestas que se encuentren abiertas y aprobadas para tal fin dentro del sistema. Para asegurar la integridad y el correcto manejo de las inversiones, se implementan una serie de validaciones y procesos automáticos.
+
+El flujo principal incluye los siguientes pasos:
+
+- Validar que la propuesta esté en estado aprobado y disponible para recibir inversiones.
+
+- Confirmar la identidad del inversionista y verificar que esté registrado en el sistema.
+
+- Validar el pago recibido y confirmar que el monto transferido por el inversionista es correcto.
+
+- Calcular el porcentaje de participación accionaria que corresponde al inversionista según el monto invertido y el valor total del proyecto.
+
+- Asegurar que la inversión total no supere el límite permitido para evitar sobreinversión.
+
+- Registrar formalmente la inversión, estableciendo las relaciones necesarias con la propuesta y el plan de entrega de fondos.
+
+- Generar un calendario con fechas clave para la revisión y fiscalización del avance del proyecto.
+
+- Preparar un plan detallado de desembolsos en tramos mensuales para la correcta administración de los fondos.
+
+- Ejecutar todos estos pasos dentro de una única transacción para garantizar la consistencia y atomicidad del proceso.
+
+Esta implementación garantiza transparencia, seguridad y control en la gestión de inversiones ciudadanas dentro de la plataforma de crowdfunding.
+
+<details>
+  <summary>Ver codigo del lado de API</summary>
+
+Esta función implementa un endpoint HTTP POST para registrar inversiones ciudadanas en propuestas activas dentro del sistema de crowdfunding y voto electrónico.
+
+La funcionalidad principal de esta API consiste en recibir una solicitud con datos en formato JSON que incluyen información sobre la propuesta, la identidad del inversor, el tipo de acuerdo, el monto a invertir, referencias de pago, fechas relevantes, moneda, recurrencia y plazos de pago. La función realiza validaciones exhaustivas para asegurar que todos los campos requeridos estén presentes y tengan el formato adecuado. Luego, se conecta a una base de datos SQL Server mediante la biblioteca pyodbc, utilizando una cadena de conexión almacenada en una variable de entorno. 
+Ejecuta un procedimiento almacenado llamado vpvSP_InvertirProyecto, que se encarga de registrar la inversión y manejar todas las operaciones relacionadas a nivel de base de datos. Finalmente, devuelve un mensaje en formato JSON con el resultado de la operación, ya sea una confirmación de éxito o información detallada sobre cualquier error ocurrido, y controla adecuadamente las excepciones para mantener la estabilidad y proporcionar respuestas claras a los consumidores del API.
+
+``` sql
+import azure.functions as func
+from datetime import datetime
+import json
+import logging
+import os #Esto para poder obtener la variable de entorno que posee la conexion
+import pyodbc
+
+# Obteniene la cadena de conexión desde la variable de entorno
+conn_str = os.environ.get("SQL_CONNECTION_STRING")
+
+"""
+    Ejecuta el procedimiento almacenado 'vpvSP_InvertirProyecto' para registrar una inversión en una propuesta activa por parte de un ciudadano.
+
+    Parámetros del cuerpo de la solicitud (req_body) de formato JSON:
+    - propuesta: Nombre de la propuesta en la que se desea invertir.
+    - idCard: Número de identificación del inversor en este caso un ciudadano.
+    - agreementType: Tipo de acuerdo (ej. "Crowdfunding de donación").
+    - monto: Monto de dinero que se desea invertir.
+    - transactionrefNumber: Número de referencia de la transacción.
+    - finalDate: Fecha de finalización del acuerdo (formato 'YYYY-MM-DD').
+    - paymentDate: Fecha del primer pago (formato 'YYYY-MM-DD').
+    - currency: Tipo de moneda utilizada, el acronimo de la moneda.
+    - recurrencia: Frecuencia de pag0 debe ser un numero entero y positivoo.
+    - plazosPago: Número de pagos o plazos para cubrir el monto total.
+
+    Retorna:
+    - HttpResponse con mensaje de éxito o error según el resultado del procedimiento. Es decir, el mensaje que retorne el sp
+    """
+def invertir(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info('Comenzando a invertir...')
+
+     #VALIDO QUE EL METODO SEA POST DE LO CONTRARIO, ESTE REQUEST NO SERA PROCESADO
+    if req.method != "POST":
+        return func.HttpResponse(
+            "Metodo no permitido. Utilice otro metodo",
+            status_code=405
+        )
+
+    #Obtengo el json que se encuentra en el body
+    try:
+        req_body = req.get_json()
+        # Agarro los parametros que me enviaron desde el body
+        propuesta = req_body.get('propuesta')
+        idCard = req_body.get('idCard')
+        agreementType = req_body.get('agreementType')
+        monto = req_body.get('monto')
+        transactionrefNumber = req_body.get('transactionrefNumber')
+        finalDate = req_body.get('finalDate')
+        paymentDate = req_body.get('paymentDate')
+        currency = req_body.get('currency')
+        recurrencia = req_body.get('recurrencia')
+        plazosPago = req_body.get('plazosPago')
+
+        #Validaciones de los datos entrantes, con la finalidad de que el sp no reciba valores nulos
+
+        if not propuesta:
+            return func.HttpResponse("El campo 'propuesta' es requerido.",status_code=400)
+
+        if not idCard or not idCard.isdigit():
+            return func.HttpResponse("El campo 'idCard' es requerido y debe ser numérico.",status_code=400)
+
+        if not agreementType:
+            return func.HttpResponse("El campo 'agreementType' es requerido.",status_code=400)
+
+        try: #valida si el monto es menor o negativo
+            monto = float(monto)
+            if monto <= 0:
+                raise ValueError()
+        except:
+            return func.HttpResponse("El campo 'monto' debe ser un número decimal positivo.",status_code=400)
+
+        if not transactionrefNumber:
+            return func.HttpResponse("El campo 'transactionrefNumber' es requerido.",status_code=400)
+
+        # Validar fechas para que se sepa si tienen el formato adecuado para ser enviado
+        try:
+            finalDate = datetime.strptime(finalDate, "%Y-%m-%d")
+        except:
+            return func.HttpResponse("El campo 'finalDate' debe tener formato YYYY-MM-DD.",status_code=400)
+
+        try:
+            paymentDate = datetime.strptime(paymentDate, "%Y-%m-%d")
+        except:
+            return func.HttpResponse("El campo 'paymentDate' debe tener formato YYYY-MM-DD.",status_code=400)
+
+        if not currency:
+            return func.HttpResponse("El campo 'currency' es requerido.",status_code=400)
+
+        if not recurrencia:
+            return func.HttpResponse("El campo 'recurrencia' es requerido.",status_code=400)
+
+        try: #validacion de los plazos con la finalidad de validar que no sea negativos o decimales
+            plazosPago = int(plazosPago)
+            if plazosPago <= 0:
+                raise ValueError()
+        except:
+            return func.HttpResponse("El campo 'plazosPago' debe ser un entero positivo.",status_code=400)
+        
+        #ejecucion del SP junto al envio de parametros
+        # Conexión a SQL Server y ejecución del SP mandandole los parametros
+        
+        try:
+            with pyodbc.connect(conn_str) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    EXEC dbo.vpvSP_InvertirProyecto ?, ?, ?, ?, ?, ?, ?, ?, ?, ?;
+                """, ( propuesta,idCard,agreementType,monto,transactionrefNumber,finalDate,paymentDate,currency, recurrencia,plazosPago))
+
+                #en caso de no lanzar una excepcion enviara un mensaje de exiito, de lo contrario el try se encarga de manejar la excepcion
+                if cursor.description:  # Verifica si hay resultados es decir si hubo un select por ej pero en este caso solamente fue un return
+                    columns = [col[0] for col in cursor.description]
+                    rows = cursor.fetchall()
+                    result = [dict(zip(columns, row)) for row in rows]
+                    return func.HttpResponse(json.dumps(result), status_code=200, mimetype="application/json")
+                else:
+                    return func.HttpResponse(
+                        json.dumps({"mensaje": "Inversion Exitosa"}),
+                        status_code=200,
+                        mimetype="application/json"
+                    )
+
+        except pyodbc.Error as e:
+            error_msg = str(e)
+            return func.HttpResponse(
+                json.dumps({"error": error_msg}),
+                status_code=400,
+                mimetype="application/json"
+            )
+                
+    #control de excepciones extras asi como rollback en la transaccion principal
+    except ValueError as e:
+        return func.HttpResponse(
+            str(e),
+            status_code=200
+        )
+
+```
+</details>
+
+---
+
+<details>
+  <summary>Ver codigo del lado del SQL SERVER</summary>
+
+Este procedimiento almacenado implementa el flujo completo de inversión de un ciudadano en una propuesta previamente aprobada y habilitada para financiamiento colectivo (crowdfunding). Fue diseñado para ejecutarse como parte de una transacción controlada y segura, garantizando integridad de datos y validaciones exhaustivas antes de registrar la inversión.
+
+El procedimiento comienza validando que la propuesta exista, esté en estado aprobado y forme parte activa del módulo de crowdfunding. Luego, verifica la identidad del ciudadano mediante desencriptación de su cédula y valida que posea el rol correspondiente (Ciudadano). A continuación, confirma que la transacción de pago sea válida y esté registrada con el monto exacto, referencia y usuario correspondiente.
+
+Con estas validaciones superadas, el procedimiento procede a calcular si la inversión es permitida sin exceder el presupuesto total del proyecto. Si la inversión permite participación accionaria, se calcula el porcentaje accionario que le corresponde al ciudadano inversor.
+
+Una vez validado y calculado lo anterior, el procedimiento registra:
+
+- El schedule de pagos,
+
+- El sponsor agreement correspondiente a la inversión,
+
+- La relación de la inversión con el proyecto,
+
+- Un plan de pagos dividido en tramos mensuales según el número de plazos acordados,
+
+- Un plan de revisión del proyecto con fechas calendarizadas periódicamente (mensual o semanal),
+
+- El tracking del proyecto, relacionando la inversión con su plan de fiscalización.
+
+Todo este flujo se ejecuta dentro de una única transacción con manejo robusto de errores. En caso de fallo, se realiza un rollback para evitar inconsistencias. Si la ejecución es exitosa, se garantiza un registro completo de la inversión y su seguimiento, conforme a los principios de transparencia y control de un sistema de votación y financiamiento colectivo
+
+```sql
+
+-----------------------------------------------------------
+-- Autor: Carol Araya Conejo
+-- Fecha: 04/06/2025
+-- Descripcion: Proceso de inversion sobre una propuesta abierta y aprobada
+-- propuesta: Nombre de la propuesta a invertir
+-- idcard: id card unico que identifique al usuario que realiza la inversion
+-- monto: monto a invertir
+-- transactionrefNumber : numero de referencia de la transaccion
+-- finalDate: Fecha de finalizacion de la propuesta
+-- currency: moneda en la que se realiza la inversion
+
+-----------------------------------------------------------
+CREATE OR ALTER   PROCEDURE [dbo].[vpvSP_InvertirProyecto]
+	@propuesta VARCHAR(255),
+	@idCard VARCHAR(255),
+	@agreementType VARCHAR(255),
+	@monto DECIMAL(20,5),
+	@transactionrefNumber VARCHAR(150),
+	@finalDate DATETIME,
+	@paymentDate DATETIME,
+	@currency VARCHAR(150),
+	@recurrencia VARCHAR(150),
+	@plazosPago INT
+AS 
+BEGIN
+	
+	SET NOCOUNT ON
+	
+	DECLARE @ErrorNumber INT, @ErrorSeverity INT, @ErrorState INT, @CustomError INT
+	DECLARE @Message VARCHAR(200)
+	DECLARE @InicieTransaccion BIT
+
+	-- declaracion de variables que representan los id encontrados
+	DECLARE @idUsuario INT
+	DECLARE @idEntidad INT = NULL
+	DECLARE @idPropuesta INT
+	DECLARE @idSponsorAgreement INT
+	DECLARE @transactionId INT
+	DECLARE @investmentTypeId INT
+	DECLARE @budget DECIMAL(20,5) 
+	DECLARE @crowfoundingId INT
+	DECLARE @currencyId INT
+	DECLARE @agreementId INT
+	DECLARE @idSchedule INT
+	DECLARE @repetition INT;
+	DECLARE @statusId INT;
+	DECLARE @idProjectTracking INT; --Plan de revision
+	DECLARE @inversionPlan INT;
+	DECLARE @docid INT;
+	DECLARE @tittle VARCHAR(100);--Representa titulos y descripciones de los planes insertados
+	
+
+	--declaracion de variables de calculo de montos y porcentajes
+	DECLARE @i INT = 0; --Utilizado para ciclos dentro de la insercion
+	DECLARE @porcentajeTotal DECIMAL(3,2) --Porcentaje total invertido
+	DECLARE @montoTotal DECIMAL(3,2) --Monto total invertido
+	DECLARE @porcentajeInversion DECIMAL(3,2) =0;--Porcentaje asignado a la inversion
+	DECLARE @poseePorcentaje BIT -- Indica si el usuario tiene porcentaje de acciones (En caso de ser donacion no tiene)
+	DECLARE @share BIT --Indica que si al ser una donacion no posee acciones
+	DECLARE @stringConcat NVARCHAR(200);
+	DECLARE @checksum VARBINARY(32);
+	DECLARE @paymetAmount DECIMAL(18,2);--Permite tener los montos a pagar en relacion a los plazos
+
+	--decalracion de variables utilizadas para la generacion de planes
+	DECLARE @currentDate DATETIME;
+    DECLARE @nextDate DATETIME;
+
+	-- operaciones de select que permiten obtener los id a partir de las entradas incluyendo sus validaciones------------------------------------
+
+	--Obtencion de status del pago
+	SELECT TOP 1 @statusId = statusId
+	FROM vpv_processStatus 
+	WHERE name = 'Pendiente de revisión'
+
+	-- Validar que el proyecto esté en estado aprobado para inversión
+	SELECT TOP 1 @idPropuesta = p.proposalId, @budget = p.budget
+	FROM vpv_proposals p
+	INNER JOIN vpv_processStatus ps on ps.statusId = p.statusId
+	WHERE p.tittle = @propuesta and ps.name = 'Aprobado'
+	
+	IF @idPropuesta IS NULL
+	BEGIN
+		RAISERROR(50001, 16, 1);
+		RETURN;
+	END
+
+	-- Validar que el proyecto sea parte del crowfounding
+	SELECT TOP 1 @crowfoundingId = p.proposalId
+	FROM vpv_crowdfoundingProposals p
+	WHERE p.proposalId = @idPropuesta and p.enable=1
+
+	IF @crowfoundingId IS NULL
+	BEGIN
+		RAISERROR(50002, 16, 1);
+		RETURN;
+	END
+
+	-- Validar que el currency en el que se realiza la inversion sea correcto
+	SELECT TOP 1 @currencyId = p.currencyId
+	FROM vpv_currencies p
+	WHERE p.acronym = @currency
+
+	IF @currencyId IS NULL
+	BEGIN
+		RAISERROR(50003, 16, 1);
+		RETURN;
+	END
+
+	--Verificar identidad del usuario y confirmar su registro en el sistema por medio de la desencriptacion de la cedula de usuarios------------------
+	OPEN SYMMETRIC KEY llavecedula DECRYPTION BY PASSWORD = 'clavecedula';
+
+	SELECT TOP 1 @idUsuario = idUser 
+	FROM vpv_Users 
+	WHERE CONVERT(nvarchar(50), DECRYPTBYKEY(id_card)) = @idCard AND enable = 1;
+
+	CLOSE SYMMETRIC KEY llavecedula;
+
+	IF @idUsuario IS NULL
+	BEGIN
+		RAISERROR(50004, 16, 1);
+		RETURN;
+	END
+
+	--Validacion de permisos con ello se busca si el usuario tiene el rol con el permiso asignado
+	DECLARE @hasRole BIT;
+
+	EXEC dbo.vpvSP_UserHasRole
+		@idUser = @idUsuario,
+		@roleName = N'Ciudadano',
+		@HasRole = @hasRole OUTPUT;
+	--Si retorna 0, en valido como null por lo tanto no hay permisos de inversion
+	IF @hasRole IS NULL
+	BEGIN
+		RAISERROR(50004, 16, 1);
+		RETURN;
+	END
+
+
+	-- Identificacion del tipo de agreement del usuario con la propuesta---------------------------------------------------------
+	SELECT TOP 1 @investmentTypeId = sponsorAgreementTypeId
+	FROM vpv_sponsorAgrementsType 
+	WHERE name=@agreementType
+
+	IF @investmentTypeId IS NULL
+	BEGIN
+		RAISERROR(50005, 16, 1);
+		RETURN;
+	END
+	
+	-- Revision del tipo de acuerdo al ser de donacion este no recibe porcentaje de acciones solo aporta al budget
+	IF @agreementType = 'Crowdfunding de donación'
+	BEGIN
+		SET @poseePorcentaje = 0;
+		SET @share = 0;
+	END
+	ELSE IF @agreementType = 'Crowdfunding de inversión'
+	BEGIN
+		SET @poseePorcentaje = 1;
+		SET @share = 1;
+	END
+	ELSE 
+	BEGIN
+		RAISERROR(50006, 16, 1);
+		RETURN; -- Va a detener el flujo del SP
+	END
+
+
+	--Comienzo de validacion de la transaccion a validar
+	--Valida si el numero de referencia es real y coincide con el usuario asi como el monto y estado de la transaccion
+	SELECT TOP 1 @transactionId = t.transactionId
+	FROM vpv_transactions t
+	INNER JOIN vpv_transSubTypes st on st.transactionSubTypeId = t.transactionSubTypeId
+	WHERE t.refNumber = @transactionrefNumber and t.idUser= @idUsuario and t.amount = @monto
+		and (st.name = 'Inversión de Usuario' OR st.name = 'Inversión de Entidad' OR st.name = 'Inversión de Sponsor' 
+		OR st.name = 'Inversion a un plan')
+
+	IF @transactionId IS NULL
+	BEGIN
+		RAISERROR(50007, 16, 1);
+		RETURN;
+	END
+
+	--Calculo de checksum de agreement
+	SET @stringConcat = CONCAT( @propuesta, '|',@monto, '|',@agreementType, '|', @crowfoundingId, '|', @currencyId);
+
+	-- Genera el has del checksum en agreement
+	SET @checksum = HASHBYTES('SHA2_256', CONVERT(VARBINARY(MAX), @stringConcat));
+
+	SET @InicieTransaccion = 0
+	IF @@TRANCOUNT=0 BEGIN
+		SET @InicieTransaccion = 1
+		SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+		BEGIN TRANSACTION		
+	END
+	
+	BEGIN TRY
+		SET @CustomError = 2001
+		
+		--Valido el monto en relacion al porcentaje de inversiones insertadas, a tiempo real por lo que se leen datos que han llegado a commit
+		--obtengo el monto total de inversion y porcentaje para validar que no haya overflow
+		SELECT @montoTotal= COALESCE(SUM(sp.inversion),0), @porcentajeTotal = COALESCE(SUM(sp.percentage),0)
+		FROM vpv_investorsPerProject p
+		INNER JOIN vpv_sponsorAgreements sp on sp.sponsorAgreementId = p.sponsorAgreementId
+		where p.enable = 1 AND sp.enable = 1 AND p.crowdfoundingProposalId=2;
+		PRINT 'dddd ' + CAST(@budget AS VARCHAR);
+		PRINT 'dddd ' + CAST(@porcentajeTotal AS VARCHAR);
+		PRINT 'dddd ' + CAST(@monto AS VARCHAR);
+
+		--Valido si en relacion al budget no se genera overflow
+		IF @monto <= (@budget - @montoTotal)
+		BEGIN
+			
+
+			IF @poseePorcentaje = 1
+			BEGIN
+				IF @porcentajeTotal < 100
+				BEGIN
+					SET @porcentajeInversion = @monto * 100.00 / @budget; 
+					-- Calculo el porcentaje en relación al monto invertido y el budget
+				END
+				ELSE
+				BEGIN
+					SET @porcentajeInversion = 0;
+				END
+			END
+		END
+		ELSE
+		BEGIN
+			RAISERROR(50008, 16, 1);
+			RETURN;
+		END
+
+		--INICIO DE INSERCIONES --------------------------------------------------------------------------
+		
+		--INSERCION DEL SCHEDULE A UTILIZAR
+		INSERT INTO dbo.vpv_schedules (name, recurrencyType, repetition, endType, endDate)
+		VALUES (@recurrencia, @recurrencia, @repetition, @finalDate, @paymentDate);
+
+		SET @idSchedule = SCOPE_IDENTITY();
+		
+
+		--INSERCION DE EL AGREEMENT COMO REGISTRO DE INVERSION
+		INSERT INTO [dbo].[vpv_sponsorAgreements]
+           ([enable],[checksum],[startDate] ,[finalDate] ,[signedDate],[deleted]
+		   ,[currencyId],[percentage] ,[amount] ,[shares],[sponsorAgreementTypeId]
+           ,[crowdfoundingProposalId],[name],[noReward],[scheduleId],[inversion])
+		VALUES
+           (1,@checksum,GETDATE(), @finalDate, GETDATE(),0,@currencyId,@porcentajeInversion,@monto,@share,
+		   @investmentTypeId,@crowfoundingId,@propuesta,@share,@idSchedule,@monto);
+
+		SET @agreementId = @@IDENTITY;
+
+		--INSERCION DE lA INVERSION EN RELACION CON LA PROPUESTA
+		INSERT INTO [dbo].[vpv_investorsPerProject]
+           ([idUser] ,[crowdfoundingProposalId],[enable],[sponsorAgreementId])
+		VALUES
+			   (@idUsuario,@crowfoundingId,1,@agreementId);
+
+		SET @inversionPlan = @@IDENTITY;
+		--INCERSION DEL PAYMENT PLAN
+		
+
+		--CALCULA EL MONTO DQUE SERA PAGADO POR PLAZO
+		SET @paymetAmount = @monto / @plazosPago;
+		DEClARE @paymentSchedule DATETIME = @paymentDate;
+		WHILE @i < @plazosPago
+		BEGIN
+			SET @checksum = HASHBYTES(
+				'SHA2_256', 
+				CONCAT(
+					CONVERT(VARCHAR, @paymentSchedule, 126), '|',CONVERT(VARCHAR, @paymetAmount), '|',CONVERT(VARCHAR, @idSchedule), '|',CONVERT(VARCHAR, @statusId), '|', CONVERT(VARCHAR, @idUsuario)
+				)
+			);
+			-- Calculo la fecha del pago para generarla por medio de tramos mensuales
+			SET @paymentSchedule = DATEADD(month, 1 * @i, GETDATE());
+
+			-- Insercion del pago
+			INSERT INTO dbo.vpv_paymentPlans 
+				(paymentDate, totalAmount, scheduleId, enable, deleted, checksum, statusId, idUser, requiredCapital)
+			VALUES
+				(@paymentSchedule, @paymetAmount, @idSchedule, 1, 0, @checksum, @statusId, @idUsuario, @budget);
+
+			SET @i = @i + 1;
+		END
+
+		--INCIO DEL PLAN DE REVISION
+		--INSERCION DEL SCHEDULE GENERAL
+		INSERT INTO vpv_schedules (name,recurrencyType,repetition,endType,endDate)
+		VALUES (@propuesta, @recurrencia, @repetition, 'NA', @finalDate);
+
+		-- Obtiene el ID generado despues de la insercion
+		SET @idSchedule = SCOPE_IDENTITY();
+
+		--GENERACION DE LAS FECHAS DE REVISION
+		SET @currentDate = @paymentDate;
+
+		WHILE @currentDate <= @finalDate
+		BEGIN
+			-- Calcula siguiente fecha para el detalle
+			IF @recurrencia = 'semanal'
+				SET @nextDate = DATEADD(WEEK, 1, @currentDate);
+			ELSE IF @recurrencia = 'mensual'
+				SET @nextDate = DATEADD(MONTH, 1, @currentDate);
+			ELSE
+			BEGIN
+				RAISERROR(50009, 16, 1);
+				RETURN;
+			END
+
+			-- Insertar detalle de revisión
+			INSERT INTO vpv_scheduleDetails (
+				baseDate, datepart, lastExecute, nextExecute, scheduleId)
+			VALUES (@paymentDate,@recurrencia,	@currentDate,@nextDate,@idSchedule);
+
+			SET @currentDate = @nextDate;
+		END
+		SET @tittle = CONCAT('User:', '_Proposal:', @idPropuesta, '_Investment:', @inversionPlan);
+
+		--Inserto el registro que permite tener un tracking al proyecto el plan se realiza por medio los detalles planificados
+		INSERT INTO vpv_ProposalTracking
+			(userId,proposalId,creationDate,enable,deleted,statusId,docid,tittle,scheduleId,description)
+		VALUES(@idUsuario,@idPropuesta,GETDATE(),1,0,@statusId,1,@tittle,@idSchedule,'Plan de revison de la propuesta' + @tittle);
+
+
+		--FIN DE INSERCIONES -----------------------------------------------------------------------------
+					
+		IF @InicieTransaccion=1 BEGIN
+			COMMIT
+		END
+	END TRY
+	BEGIN CATCH
+		SET @ErrorNumber = ERROR_NUMBER()
+		SET @ErrorSeverity = ERROR_SEVERITY()
+		SET @ErrorState = ERROR_STATE()
+		SET @Message = ERROR_MESSAGE()
+		
+		IF @InicieTransaccion=1 BEGIN
+			ROLLBACK
+		END
+		RAISERROR('%s - Error Number: %i', 
+			@ErrorSeverity, @ErrorState, @Message, @CustomError)
+	END CATCH	
+END
+RETURN 0
+
+```
+ 
   </details>
 
-  ### Endpoints implementados por ORM
+#### Errores Personalizados
+  <details>
+  <summary>Ver errores personalizados</summary>
+
+Los siguientes códigos de error (50001 – 50010) se registran en SQL Server mediante sp_addmessage y son utilizados por el procedimiento almacenado vpvSP_InvertirProyecto para informar condiciones que impiden completar una inversión. Todos se definen con severidad 16 (errores que debe corregir el usuario o la llamada) y en idioma Spanish.  
+
+| Código    | Mensaje (Spanish)                                                        | Cuándo se lanza                                                                                        | Acción recomendada                                                                         |
+| --------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| **50001** | *La propuesta a invertir no ha sido aprobada*                            | La propuesta existe pero su estado no es **Aprobado**.                                                 | Validar el flujo de aprobación de la propuesta antes de permitir inversiones.              |
+| **50002** | *La propuesta no forma parte del crowfounding*                           | La propuesta no está registrada como **crowdfunding** o está deshabilitada.                            | Revisar que la propuesta esté en `vpv_crowdfoundingProposals` y marcada como `enable = 1`. |
+| **50003** | *El tipo de cambio no es correcto*                                       | El acrónimo de moneda recibido no coincide con ninguno en `vpv_currencies`.                            | Verificar que la moneda enviada exista y esté habilitada.                                  |
+| **50004** | *El usuario no tiene permisos*                                           | El ID de usuario no es válido, no está habilitado o no posee el rol **Ciudadano**.                     | Confirmar la identidad, habilitación y rol correcto del usuario.                           |
+| **50005** | *El tipo acuerdo de inversión con el usuario no es correcto*             | El tipo de acuerdo (`@agreementType`) no existe en `vpv_sponsorAgrementsType`.                         | Corregir el tipo de acuerdo enviado o crear el registro faltante en la tabla.              |
+| **50006** | *El tipo de acuerdo no pertenece a una inversión de crowdfunding*        | Se envió un `@agreementType` distinto de **Crowdfunding de donación** o **Crowdfunding de inversión**. | Ajustar el tipo de acuerdo a uno de los aceptados.                                         |
+| **50007** | *No se ha registrado un pago en relación a la inversión del usuario*     | No existe transacción que coincida con el número de referencia, usuario y monto.                       | Confirmar el registro de la transacción de pago antes de invertir.                         |
+| **50008** | *El monto a invertir sobrepasa el plan del proyecto. Comuníquese con TI* | La suma de inversiones excedería el presupuesto (`budget`) de la propuesta.                            | Reducir el monto o ajustar el presupuesto aprobado.                                        |
+| **50009** | *El plazo indicado no existe*                                            | El valor de `@recurrencia` no es `semanal` ni `mensual`.                                               | Corregir la periodicidad enviada o ampliar la lógica para admitir más opciones.            |
+| **50010** | *El usuario no tiene permisos*                                           | Mensaje genérico utilizado cuando otras verificaciones de autorización fallan.                         | Revisar credenciales y roles del usuario solicitante.                                      |
+
+
+  </details>  
+     
+</details>
+
+    
+  </details>
+
+## Endpoints implementados por ORM
+
+Los endpoints implementados mediante **ORM (Object-Relational Mapping)** permiten interactuar con la base de datos de forma más abstracta y orientada a objetos. En lugar de escribir directamente consultas SQL, se trabajan con clases y objetos que representan las tablas y registros de la base de datos. Esto facilita el desarrollo, mantenimiento y escalabilidad del código.
+
+### SQLAlchemy: La herramienta principal
+
+Para esta implementación se utiliza **SQLAlchemy**, una biblioteca popular en Python para el manejo de bases de datos relacionales. SQLAlchemy proporciona:
+
+- **Modelos declarativos**: cada tabla de la base de datos se representa como una clase Python con atributos que corresponden a las columnas de la tabla.
+- **Sesiones de trabajo**: permiten realizar operaciones transaccionales (insertar, actualizar, borrar) de forma segura, con control sobre commits y rollbacks.
+- **Consultas expresivas**: ofrece una API para construir consultas complejas sin necesidad de escribir SQL manualmente, lo que reduce errores y mejora la legibilidad.
+- **Compatibilidad con múltiples motores de bases de datos**, aunque en este proyecto se conecta a un servidor SQL Server.
+
+### Ventajas de usar ORM en los endpoints
+
+- **Abstracción del acceso a datos**: el desarrollador trabaja con objetos y métodos, no con sentencias SQL.
+- **Control de transacciones**: las sesiones permiten garantizar la atomicidad y consistencia mediante commits y rollbacks automáticos o manuales.
+- **Facilidad para validar y manipular datos**: es posible integrar validaciones y lógica directamente en los modelos o en los controladores de la aplicación.
+- **Mejor mantenimiento y escalabilidad**: el código es más limpio y modular, facilitando la incorporación de nuevas funcionalidades.
+
+### Otras herramientas usadas en conjunto
+
+- **Azure Functions**: plataforma serverless que permite desplegar funciones HTTP como endpoints del API, manejando la lógica de negocio de forma distribuida y escalable.
+- **dotenv**: biblioteca para cargar variables de entorno desde archivos `.env`, facilitando la configuración y seguridad (por ejemplo, para claves o cadenas de conexión).
+- **Python estándar**: para el manejo de JSON, logging y procesamiento de las solicitudes HTTP.
+
+### Flujo general en los endpoints ORM
+
+1. **Recepción de la solicitud HTTP** con datos en formato JSON.
+2. **Validación de permisos y datos de entrada** para garantizar que el usuario pueda realizar la acción y que los datos sean correctos.
+3. **Inicio de una sesión de SQLAlchemy** para manipular los datos.
+4. **Operaciones con los modelos**: creación, actualización o consulta de registros en la base de datos usando métodos de la sesión.
+5. **Confirmación de los cambios mediante commit** o reversión ante errores con rollback.
+6. **Respuesta HTTP con el resultado de la operación** (éxito o error).
+
+Este enfoque permite un desarrollo robusto, seguro y eficiente de la API, favoreciendo la colaboración entre desarrolladores y la evolución del sistema.
+
+
   ---
   <details>
-  <summary>Desplegar información</summary>
-    En construccion
+  <summary>Ver Endpoints</summary>
+
+### Configurar Votacion
+<details>
+  <summary>Ver Informacion</summary>
+Este endpoint permite configurar todos los parámetros necesarios para realizar una votación sobre una propuesta específica. Su implementación se realiza utilizando el ORM **SQLAlchemy**, facilitando la manipulación de entidades y relaciones en la base de datos mediante clases Python.
+
+#### Funcionalidad principal
+
+El proceso inicia validando los permisos del usuario que desea realizar la configuración. Posteriormente, se definen filtros que delimitan la población meta, incluyendo criterios como edad, género, nacionalidad, ubicación geográfica, y pertenencia institucional. Se configura también la zona de impacto de la propuesta (nacional, regional, municipal), y se especifican las fechas de inicio y cierre del proceso de votación.
+
+Se permite establecer la lista de votantes, ya sea de forma directa o mediante segmentación automática. Además, pueden definirse restricciones adicionales como rangos de IP, horarios específicos o turnos.
+
+El tipo de votación (por ejemplo, única, múltiple, calificación) también es configurable, junto con las preguntas y respuestas asociadas a la propuesta. Toda esta configuración se guarda en estado “preparado”, y solo podrá ser modificada antes del inicio oficial del periodo de votación.
+
+#### Herramientas utilizadas
+
+- **Python** con **SQLAlchemy** como ORM.
+- **Azure Functions** para ejecutar localmente bajo el enfoque serverless.
+- **SQL Server** como base de datos.
+- **Thunder Client** o **Postman** para pruebas de los endpoints.
+<details>
+  <summary>Ver Funcion ORM</summary>
+	
+```sql
+
+import azure.functions as func
+import logging
+import json
+from database import SessionLocal
+from sqlalchemy import text #utilizada para enviar texto a la sesion
+import os #utilizado para variables de entorno
+from dotenv import load_dotenv
+
+
+# Carga las variables del .env
+load_dotenv()
+#variables de entorno
+clave = os.getenv("CLAVECEDULA")
+
+#Importacion de las tablas involucradas en el proceso
+from Models.users import VpvUser
+from Models.Configuracion_Votacion.allowedVoters import AllowedVoter
+from Models.Configuracion_Votacion.clousureType import VpvClosureTypes
+from Models.Configuracion_Votacion.executionPlan import VpvExecutionPlans
+from Models.Configuracion_Votacion.governmentConditions import VpvGovernmentConditions
+from Models.Configuracion_Votacion.impactZonesPerVoting import ImpactZonesPerVoting
+from Models.Configuracion_Votacion.metricPlan import VpvMetricPerPlan
+from Models.Configuracion_Votacion.projectReport import VpvProjectReports
+from Models.Configuracion_Votacion.proposalVersion import VpvProposalVersions
+from Models.Configuracion_Votacion.reminderType import ReminderType
+from Models.Configuracion_Votacion.sponsor import SponsorAgreement
+from Models.Configuracion_Votacion.statusVoting import StatusVoting
+from Models.Configuracion_Votacion.targetPopulations import TargetPopulationsVoting
+from Models.Configuracion_Votacion.votingConfing import VotingConfiguration
+from Models.Configuracion_Votacion.votingQuestions import VpvVotingQuestions
+from Models.Configuracion_Votacion.votingReasons import VpvVotingReasons
+from Models.Configuracion_Votacion.votingRestrictions import VotingPerRestriction
+from Models.Configuracion_Votacion.votingRules import VotingRule
+from Models.Configuracion_Votacion.votingType import VotingType
+from Models.Configuracion_Votacion.targetPopulationsVpv import VpvTargetPopulations
+from Models.Configuracion_Votacion.impactZones import ImpactZones
+from Models.Configuracion_Votacion.questions import VpvQuestions
+from Models.Configuracion_Votacion.rules import Rule
+from Models.Configuracion_Votacion.restrictions import VotingRestriction
+from Endpoints_ORM.encrypt_checksum import encrypt_checksum
+from Endpoints_ORM.validarPermisos import validar_permiso
+
+'''
+    Configurar votacion: Se encarga de configurar los parametros de una votacion para una propuesta especifica.
+    En terminos de este sistema se configura hacia una version de la poblacion
+    Parámetros del cuerpo de la solicitud (req_body) de formato JSON:
+    - proposalVersion: Nombre de la propuesta a votar(El formato obligatorio es 2025-06-16T12:00:00Z).
+    - openDate: Fecha y hora de apertura de la votación.
+    - closeDate: Fecha y hora de cierre de la votación.
+    - creationDate: Fecha en que se crea la configuración de votación.
+    - VotingType: Tipo de votación (por ejemplo, "Unica").
+    - description: Descripción general de la votación.
+    - weight: Indica si la votación tendrá ponderación (0 o 1)Boleano.
+    - ReminderType: Tipo de recordatorio a utilizar (ej. Email, Notificación).
+    - ClosureTypes: Define cómo se cierra la votación (ej. "hasta que los votantes terminen").
+    - VotingReasons: Justificación o motivo de la votación.
+
+    Listas asociadas:
+    - targetPopulations:
+        - name: Nombre del grupo poblacional.
+        - weight: Valor de ponderación asignado.
+    - impactZones:
+        - name: Nombre de la zona.
+    - questions:
+        - name: Texto de la pregunta.
+        - orderBy: Orden de aparición en la boleta.
+    - rules:
+        - name: Nombre o título de la regla.
+    - restrictions:
+        - name: Descripción de la restricción.
+'''
+
+def configurarVotacionORM(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info('Procesando la configuracion de la votacion...')
+
+    #VALIDO QUE EL METODO SEA POST DE LO CONTRARIO, ESTE REQUEST NO SERA PROCESADO
+    if req.method != "POST":
+        return func.HttpResponse(
+            "Metodo no permitido. Utilice otro metodo",
+            status_code=405
+        )
+
+    #Obtengo el json que se encuentra en el body
+    try:
+        session = SessionLocal()
+        req_body = req.get_json()
+        idcard = req_body.get("idCard")
+        #Validacion del usuario, en este caso debe ser un proponente encargado de la configuracion y creacion de propuestas
+        try:
+            validar_permiso(session, idcard, 'Proponente')
+        except PermissionError as e:
+            return func.HttpResponse(
+                json.dumps({"error": str(e)}),
+                status_code=403,
+                mimetype="application/json"
+            )
+
+        #Realiza la insercio de los datos que corresponden a la configuracion general de la votacion, sin contar las listas recibidas
+        objInsertado = InsertVotingConfing(req_body, session)
+        #Se obtiene el objeto insertado esto con la finalidad de obtener el id asi como datos importantes del mismo
+
+        #Valida si la configuracion fue exitosa
+        if not objInsertado:
+            return func.HttpResponse("No se insertó la configuración de forma exitosa", status_code=500)
+
+        #------------------Comienzo de insercion de las listas recibidas----------------------------
+
+        #obtencion de la coleccion de segmentos de la poblacion
+        target_populations = req_body.get("targetPopulations")
+        if not target_populations or not isinstance(target_populations, list):#validacion de la existencia de datos
+            return func.HttpResponse("Segmentos poblacionales inválidos o faltantes", status_code=400)
+        #Valida la insercion exitosa
+        if not InsertTargetPopulations(target_populations, objInsertado.idVotingConfig,session,objInsertado.weight):#Insercion de los segmentos de poblacion
+            return func.HttpResponse("No se insertaron de forma correcta los segmentos poblacionales", status_code=500)
+        
+        #obtencion de la coleccion de las zonas de impacto
+        impact_zones = req_body.get("impactZones")
+        if not impact_zones or not isinstance(impact_zones, list):#validacion de la existencia de datos
+            return func.HttpResponse("Zonas de impactos inválidas o faltantes", status_code=400)
+
+        if not InsertImpactZones(impact_zones, objInsertado.idVotingConfig,session):
+            return func.HttpResponse("No se insertaron de forma correcta las zonas de impacto", status_code=500)#Insercion de las zonas de impacto
+        
+        #obtencion de la coleccion de preguntas correspondientes a la configuracion
+        questions = req_body.get("questions")
+        if not questions or not isinstance(questions, list):
+            return func.HttpResponse("Preguntas inválidas o faltantes", status_code=400)
+
+        if not InsertQuestions(questions, objInsertado.idVotingConfig,session): #realiza y valida el resultado de la insercion a la base de datos
+            return func.HttpResponse("No se insertaron de forma correcta las preguntas", status_code=500)
+        
+        #Obtencion de la coleccion de reglas definidas en la configuracion
+        rules = req_body.get("rules")
+        if not rules or not isinstance(rules, list): #validaciond e la existencia de datos
+            return func.HttpResponse("Reglas inválidas o faltantes", status_code=400)
+
+        #Intento de insercion y evaluacion del mismo en la base, se envia la lista!
+        if not InsertRules(rules, objInsertado.idVotingConfig,session):
+            return func.HttpResponse("No se insertaron de forma correcta las reglas", status_code=500)
+        
+        #Obtencion de la coleccion de restricciones definidas en la configuracion
+        restrictions = req_body.get("restrictions")
+        if not restrictions or not isinstance(restrictions, list):
+            return func.HttpResponse("restricciones inválidas o faltantes", status_code=400)
+
+        if not InsertRestrictions(restrictions, objInsertado.idVotingConfig,session):
+            return func.HttpResponse("No se insertaron de forma correcta las restricciones", status_code=500)
+        
+        #Obtencion de la coleccion de votantes directos definidas en la configuracion
+        votantes = req_body.get("allowedVoters")
+        if not votantes or not isinstance(votantes, list):
+            return func.HttpResponse("Votantes inválidas o faltantes", status_code=400)
+
+        if not InsertAllowedVoters(votantes, objInsertado.idVotingConfig,session):
+            return func.HttpResponse("No se insertaron de forma correcta los votantens directos", status_code=500)
+
+        #Con la finalidad de hacer transacciones atomicas, se realiza el commit de la session creada hasta el final de la operacion es decir que haya pasado todas las validaciones
+        session.commit()
+        return func.HttpResponse("Configuración de votación insertada correctamente", status_code=201)
+    #control de excepciones extras asi como rollback en la transaccion principal
+    except ValueError as e:
+        session.rollback()
+        return func.HttpResponse(
+            str(e),
+            status_code=200
+        )
+
+"""
+Insercion de los segmentos poblacionales, lee los nombres recibidos y identifica el id de los mismos para relacionarlo con la configuracion creadas
+Entradas:   Lista de los segmentos poblacionales
+            Id de la votacion insertada
+            Validacion si la votacion es pesada de no ser asi no se coloca un peso
+            session creada para la transaccion
+"""
+def InsertTargetPopulations(targetPopulations, idVotingConfig,session,weightBoolean):
+    #recorro los target brindados por el usuario para ir encontrando su id y por ultimo insertarlos
+    for target in targetPopulations:
+        #validaciones inciales de los target ingresados
+        name = target.get("name")
+
+        #Valido si la votacion esta medida por pesos
+        if weightBoolean:
+            weight = target.get("weight")
+        else:
+            weight = None;
+        
+        #Valido los campos recibidos
+        if not name:
+            return func.HttpResponse("Cada segmento poblacional debe tener un nombre", status_code=400)
+        
+        if weight is not None and not isinstance(weight, (float, int)):
+            return func.HttpResponse("Weight debe ser numérico o null", status_code=400)
+        
+        #busqueda del valor del id relacionado al name recibido
+        #Target Population--------------------------------
+        
+        # Obtengo el objeto identificado
+        targetId = session.query(VpvTargetPopulations.idTargetPopulation).filter_by(name=name, enable=True).first()
+
+        if not targetId:
+            raise ValueError(f"No se encontró el estado del target ingresado: {name}")
+        
+        
+        #Insert el target en la tabla
+        targetPopulation=TargetPopulationsVoting(
+            idVotingConfig=idVotingConfig,
+            idTargetPopulation=targetId[0],
+            enable=True,
+            weight = weight
+        )
+
+        #Calculo del checksum, envio en forma de lista los datos que quiero que sean encriptados
+        datos_a_checksum = (targetPopulation.idTargetPopulation, targetPopulation.idVotingConfig, targetPopulation.weight)
+        #genero el checksum por medio de la llamada del metodo
+        checksum = encrypt_checksum(*datos_a_checksum)
+        #Actualiza el checksum del registro a insertar
+        targetPopulation.checksum = checksum;
+        #realizo la insercion a la base de datos, pero no realizo commit por que no es la transaccion principal
+        session.add(targetPopulation)
+        
+
+    return True
+
+"""
+Insercion de los zonas de impacto, lee los nombres recibidos y identifica el id de los mismos para relacionarlo con la configuracion creadas
+Entradas:   Lista de las zonas de impacto
+            Id de la votacion insertada
+            session creada para la transaccion
+"""
+def InsertImpactZones(impactZones, idVotingConfig,session):
+    #recorro las zonas brindados por el usuario para ir encontrando su id y por ultimo insertarlos
+    for zone in impactZones:
+        #validaciones inciales del nombre de la zona
+        name = zone.get("name")
+
+        #Valido los campos recibidos
+        if not name:
+            return func.HttpResponse("Cada zona de impacto debe tener un nombre", status_code=400)
+        
+        
+        #busqueda del valor del id relacionado al name recibido
+        #Impact Zone--------------------------------
+        
+        # Obtengo el objeto identificado
+        zoneId = session.query(ImpactZones.idImpactZone).filter_by(name=name, enable=True).first()
+
+        if not zoneId:
+            raise ValueError(f"No se encontró el nombre de la zona ingresado: {name}")
+        print(f"idVotingConfig = {idVotingConfig!r}")
+        #Insert de la zona de impacto en la tabla
+        impactZonesObj=ImpactZonesPerVoting(
+            idVotingConfig=idVotingConfig,
+            idImpactZones=zoneId[0],
+            enable=True
+        )
+
+        #Calculo del checksum
+        datos_a_checksum = (impactZonesObj.idImpactZones, impactZonesObj.idVotingConfig)
+        #genero el checksum por medio de la llamada del metod
+        checksum = encrypt_checksum(*datos_a_checksum)
+
+        impactZonesObj.checksum = checksum;
+        #realizo la insercion a la base de datos, pero no realizo commit por que no es la transaccion principal
+        session.add(impactZonesObj)
+        
+
+    return True
+
+"""
+Insercion de las preguntas, lee los nombres recibidos y identifica el id de los mismos para relacionarlo con la configuracion creadas
+Entradas:   Lista de las preguntas
+            Id de la votacion insertada
+            session creada para la transaccion
+"""
+def InsertQuestions(questions, idVotingConfig,session):
+    #recorro las zonas brindados por el usuario para ir encontrando su id y por ultimo insertarlos
+    for question in questions:
+        #validaciones inciales del nombre de la zona
+        name = question.get("name")
+        orderBy = question.get("orderBy")
+
+        #Valido los campos recibidos
+        if not name:
+            return func.HttpResponse("Cada pregunta debe tener nombre", status_code=400)
+        if not orderBy:
+            return func.HttpResponse("Cada pregunta debe tener un orden", status_code=400)
+        
+        #busqueda del valor del id relacionado al name recibido
+        #Questions--------------------------------
+        
+        # Obtengo el objeto identificado
+        questionId = session.query(VpvQuestions.idQuestion).filter_by(description=name).first()
+
+        if not questionId:
+            raise ValueError(f"No se encontró una pregunta con la descripcion: {name}")
+        
+        #Insert de la pregunta
+        preguntaObj=VpvVotingQuestions(
+            idQuestion=questionId[0],
+            idVotingConfig=idVotingConfig,
+            enable=True,
+            orderBy=orderBy
+        )
+       
+        #Calculo del checksum
+        datos_a_checksum = (preguntaObj.idQuestion, preguntaObj.idVotingConfig,preguntaObj.creationDate,preguntaObj.orderBy)
+
+        checksum = encrypt_checksum(*datos_a_checksum)
+
+        preguntaObj.checksum = checksum;
+
+        session.add(preguntaObj)
+        
+    return True
+
+"""
+Insercion de las reglas, lee los nombres recibidos y identifica el id de los mismos para relacionarlo con la configuracion creadas
+Entradas:   Lista de las reglas
+            Id de la votacion insertada
+            session creada para la transaccion
+"""
+def InsertRules(rules, idVotingConfig,session):
+    #recorro las zonas brindados por el usuario para ir encontrando su id y por ultimo insertarlos
+    for rule in rules:
+        #validaciones inciales del nombre de la zona
+        name = rule.get("name")
+
+        #Valido los campos recibidos
+        if not name:
+            return func.HttpResponse("Cada regla debe tener un nombre", status_code=400)
+        
+        
+        #busqueda del valor del id relacionado al name recibido
+        #Rules--------------------------------
+        
+        # Obtengo el objeto identificado
+        ruleId = session.query(Rule.idRule).filter_by(name=name, enable=True).first()
+
+        if not ruleId:
+            raise ValueError(f"No se encontró el nombre de la regla ingresado: {name}")
+        
+        #Insert de la zona de impacto en la tabla
+        ruleObj=VotingRule(
+            idVotingConfig=idVotingConfig,
+            idRule=ruleId[0]
+        )
+
+        #Calculo del checksum
+        datos_a_checksum = (ruleObj.idRule, ruleObj.idVotingConfig)
+
+        checksum = encrypt_checksum(*datos_a_checksum)
+
+        ruleObj.checksum = checksum;
+       
+        session.add(ruleObj)
+        
+
+    return True
+
+
+"""
+Insercion de las restricciones, lee los nombres recibidos y identifica el id de los mismos para relacionarlo con la configuracion creadas
+Entradas:   Lista de las restricciones
+            Id de la votacion insertada
+            session creada para la transaccion
+"""
+def InsertRestrictions(restrictions, idVotingConfig,session):
+    #recorro las zonas brindados por el usuario para ir encontrando su id y por ultimo insertarlos
+    for restriction in restrictions:
+        #validaciones inciales del nombre de la zona
+        name = restriction.get("name")
+
+        #Valido los campos recibidos
+        if not name:
+            return func.HttpResponse("Cada restriction debe tener un nombre", status_code=400)
+        
+        
+        #busqueda del valor del id relacionado al name recibido
+        #restrictions--------------------------------
+        
+        # Obtengo el objeto identificado
+        restrictionId = session.query(VotingRestriction.idRestrictions).filter_by(description=name, enable=True).first()
+
+        if not restrictionId:
+            raise ValueError(f"No se encontró el nombre de la restriccion ingresado: {name}")
+        
+        #Insert de la zona de impacto en la tabla
+        resObj=VotingPerRestriction(
+            idVotingConfig=idVotingConfig,
+            idRestrictions=restrictionId[0],
+            enable=True
+        )
+
+        #Calculo del checksum
+        datos_a_checksum = (resObj.idVotingConfig, resObj.idRestrictions, resObj.enable)
+
+        checksum = encrypt_checksum(*datos_a_checksum)
+
+        resObj.checksum = checksum;
+       
+        session.add(resObj)
+        
+
+    return True
+
+"""
+EN CONSTRUCCION
+Insercion de los votantes directos, lee los nombres recibidos y identifica el id de los mismos para relacionarlo con la configuracion creadas
+Entradas:   Lista de lOS votantes directo
+            Id de la votacion insertada
+            session creada para la transaccion
+"""
+def InsertAllowedVoters(voters, idVotingConfig,session):
+    #abro la llave para desencriptar las cedulas
+    sql = f"OPEN SYMMETRIC KEY llavecedula DECRYPTION BY PASSWORD = '{clave}'"
+    session.execute(text(sql))
+
+    for voter in voters:
+        #validaciones inciales del nombre de la zona
+        idCard = voter.get("idCard")
+
+        #Valido los campos recibidos
+        if not idCard:
+            return func.HttpResponse("Cada votante debe tener un idcard", status_code=400)
+        
+        
+        #busqueda del valor del id relacionado al name recibido
+        #votantes--------------------------------
+        
+        # Obtengo el objeto identificado
+        result = session.execute(text("""
+            SELECT idUser
+            FROM vpv_Users
+            WHERE enable = 1
+            AND CONVERT(nvarchar(50), DECRYPTBYKEY(id_card)) = :idCard
+        """), {'idCard': idCard})
+
+        # Obtener el primer resultado
+        row = result.fetchone()
+        userId = row[0] if row else None
+
+        
+        if not userId:
+            raise ValueError(f"No se encontró el usuarios ingresado: {idCard}, o el mismo no esta activo")
+        
+        #Obtencion del blind token
+
+        #Insert de los usuarios en la tabla
+        userObj=AllowedVoter(
+            idVotingConfig=idVotingConfig,
+            idBlindToken=userId,
+            enable=True
+        )
+
+        #Calculo del checksum
+        datos_a_checksum = (userObj.idVotingConfig, userObj.idBlindToken, userObj.enable,userObj.creationDate)
+
+        checksum = encrypt_checksum(*datos_a_checksum)
+
+        userObj.checksum = checksum;
+       
+        session.add(userObj)
+    # Cerrar la llave
+    session.execute(text("CLOSE SYMMETRIC KEY llavecedula;"))    
+        
+
+    return True
+
+
+"""
+Insercion de los datos generales de la votacion de la configuracion, obtiene los datos necesarios que fueron recibidos por el json, ademas, al recibir el nombre debe encontrar el id de las FK's que forman parte del registro
+Entradas:   entrada tipo json con los datos recidos para obtener los necesarios
+            session creada para la transaccion
+"""
+def InsertVotingConfing(req_body, session):
+
+    #Obtengo los ID de las llaves foraneas utilizadas
+    #Proposal Version------------------------------
+    proposalName = req_body.get("proposalVersion")
+
+    # Obtengo el objeto identificado
+    proposalId = session.query(VpvProposalVersions.proposalVersionId).filter_by(tittle=proposalName, enable=True).first()
+
+    if not proposalId:
+        raise ValueError(f"No se encontró la version de propuesta con nombre: {proposalName}")
+    
+    #Status de votacion--------------------------------
+    statusName = "Preparado"
+
+    # Obtengo el objeto identificado
+    statusId = session.query(StatusVoting.idStatusVoting).filter_by(name=statusName, enable=True).first()
+
+    if not statusId:
+        raise ValueError(f"No se encontró el estado de la propuesta con nombre: {statusName}")
+
+    #Tipo de votacion-------------------------------
+    voting_type_name = req_body.get("VotingType")
+
+    # Obtengo el objeto identificado
+    voting_type_id = session.query(VotingType.idVotingType).filter_by(name=voting_type_name, enable=True).first()
+
+    if not voting_type_id:
+        raise ValueError(f"No se encontró el tipo de votación con nombre: {voting_type_name}")
+    
+    #Reminder Type------------------------------
+    reminderName = req_body.get("ReminderType")
+
+    # Obtengo el objeto identificado
+    reminderId = session.query(ReminderType.idReminderType).filter_by(name=reminderName, enable=True).first()
+
+    if not reminderId:
+        raise ValueError(f"No se encontró el tipo de recordatorio con nombre: {reminderName}")
+    
+    #Reminder Type------------------------------
+    ClosureName = req_body.get("ClosureTypes")
+
+    # Obtengo el objeto identificado
+    closureId = session.query(VpvClosureTypes.idClosureTypes).filter_by(name=ClosureName, enable=True).first()
+
+    if not closureId:
+        raise ValueError(f"No se encontró el tipo de cierre con nombre: {ClosureName}")
+    
+    #Voting Reasons------------------------------
+    reasonName = req_body.get("VotingReasons")
+
+    # Obtengo el objeto identificado
+    reasonId = session.query(VpvVotingReasons.idvotingReasons).filter_by(name=reasonName, enable=True).first()
+
+    if not reasonId:
+        raise ValueError(f"No se encontró el tipo de razon con nombre: {reasonName}")
+    
+
+    #Campos opcionales dentro dentro del tipo de razon segun la propuesta------------------------------------------
+    #crea las variables y las inicializa como none para que a la hora de insertar en caso de no recibir un datos de ellos no haya problema al momento de buscar el id
+    execution_plan_id = None
+    if req_body.get("executionPlan"): #en caso de haber una entrada, se busca el id que corresponda al nombre en la tabla especifica y se alamcena en la variable previamente inicializada
+        execution_plan_id = session.query(VpvExecutionPlans.executionPlanId).filter_by(tittle=req_body["executionPlan"]).first()
+        #en caso de no haber un resultado correspondiente esto se indica
+        if not execution_plan_id:
+            raise ValueError(f"No se encontró el plan de ejecucion")
+
+    metric_plan_id = None
+    if req_body.get("metricPlan"):
+        objId = session.query(VpvMetricPerPlan.metricPlanId).filter_by(name=req_body["metricPlan"]).first()
+        if not objId:
+            raise ValueError(f"No se encontró la metrica de plan")
+
+    project_report_id = None
+    if req_body.get("projectReport"):
+        objId = session.query(VpvProjectReports.projectReportId).filter_by(tittle=req_body["projectReport"]).first()
+        if not objId:
+            raise ValueError(f"No se encontró el reporte")
+
+    sponsor_id = None
+    if req_body.get("sponsor"):
+        objId = session.query(SponsorAgreement.sponsorAgreementId).filter_by(name=req_body["sponsor"]).first()
+        if not objId:
+            raise ValueError(f"No se encontró el sponsor")
+
+    government_conditions_id = None
+    if req_body.get("governmentConditions"):
+        objId = session.query(VpvGovernmentConditions.governmentConditionId).filter_by(name=req_body["governmentConditions"]).first()
+        if not objId:
+            raise ValueError(f"No se encontró el sponsor")
+    #Fin de los casos opcionales ---------------------------------------------------------------------------------------------------------
+
+
+    #crea el objeto de la nueva configuracion de los datos de votacion asignando las variables
+    nueva_config = VotingConfiguration(
+        proposalVersionId=proposalId[0], #al ser una consulta se indica el comando first, no obstante me devuelve una lista es por ello que se debe indicar el elemento 0
+        openDate=req_body.get("openDate"),
+        closeDate=req_body.get("closeDate"),
+        idStatusVoting=statusId[0],
+        idVotingType=voting_type_id[0],
+        description=req_body.get("description", "Sin descripción"),
+        weight=req_body.get("weight", False),
+        checksum=req_body.get("checksum"),
+        idReminderType=reminderId[0],
+        idClosureTypes=closureId[0],
+        idvotingReasons=reasonId[0],
+        executionPlanId = execution_plan_id[0] if execution_plan_id else None, #Validacion de la existencia de las variables opcionales
+        metricPlanId = metric_plan_id[0] if metric_plan_id else None,
+        projectReportId = project_report_id[0] if project_report_id else None,
+        sponsorAgreementId = sponsor_id[0] if sponsor_id else None,
+        governmentConditionId = government_conditions_id[0] if government_conditions_id else None
+    )
+
+    #calculo del checksum
+    datos_a_checksum = (
+        nueva_config.proposalVersionId,
+        nueva_config.openDate,
+        nueva_config.closeDate,
+        nueva_config.idStatusVoting,
+        nueva_config.idVotingType,
+        nueva_config.description,
+        nueva_config.weight,
+        nueva_config.idReminderType,
+        nueva_config.idClosureTypes,
+        nueva_config.idvotingReasons,
+        nueva_config.executionPlanId if nueva_config.executionPlanId is not None else "",
+        nueva_config.metricPlanId if nueva_config.metricPlanId is not None else "",
+        nueva_config.projectReportId if nueva_config.projectReportId is not None else "",
+        nueva_config.sponsorAgreementId if nueva_config.sponsorAgreementId is not None else "",
+        nueva_config.governmentConditionId if nueva_config.governmentConditionId is not None else ""
+    )
+
+    checksum = encrypt_checksum(*datos_a_checksum)
+    #insercion del checksum a la nueva configuracion
+    nueva_config.checksum = checksum
+
+
+    #retorno el id de la configuracion insertada
+    session.add(nueva_config)
+    session.flush()#permite actualizar el objeto tipo tabla que fue insertado esto con la finalidad de obtener el id que fue generado al momento de la insercion.
+
+    return nueva_config; #retorno el objeto actualizado junto a su ID asignado para futuras relaciones como FK en otras tablas
+
+	
+```	
+</details>
+
+#### Errores Personalizados
+  <details>
+  <summary>Ver errores personalizados</summary>
+
+Durante el proceso de inserción de la configuración y sus listas asociadas, se validan los datos y se controla la correcta ejecución de cada paso. Los errores que pueden ocurrir se describen a continuación:
+
+| Error                                         | Código HTTP | Descripción                                                      | Motivo                                                                                    |
+| --------------------------------------------- | ----------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Configuración no insertada                    | 500         | "No se insertó la configuración de forma exitosa"                | No se pudo crear el registro principal de configuración en la base de datos.              |
+| Segmentos poblacionales inválidos o faltantes | 400         | "Segmentos poblacionales inválidos o faltantes"                  | El campo `targetPopulations` está ausente o no es una lista válida en el JSON recibido.   |
+| Error al insertar segmentos poblacionales     | 500         | "No se insertaron de forma correcta los segmentos poblacionales" | Fallo durante la inserción de los segmentos de población relacionados a la configuración. |
+| Zonas de impacto inválidas o faltantes        | 400         | "Zonas de impactos inválidas o faltantes"                        | El campo `impactZones` está ausente o no es una lista válida.                             |
+| Error al insertar zonas de impacto            | 500         | "No se insertaron de forma correcta las zonas de impacto"        | Fallo durante la inserción de las zonas de impacto asociadas.                             |
+| Preguntas inválidas o faltantes               | 400         | "Preguntas inválidas o faltantes"                                | El campo `questions` está ausente o no es una lista válida.                               |
+| Error al insertar preguntas                   | 500         | "No se insertaron de forma correcta las preguntas"               | Fallo en la inserción de las preguntas relacionadas con la votación.                      |
+| Reglas inválidas o faltantes                  | 400         | "Reglas inválidas o faltantes"                                   | El campo `rules` está ausente o no es una lista válida.                                   |
+| Error al insertar reglas                      | 500         | "No se insertaron de forma correcta las reglas"                  | Fallo durante la inserción de las reglas definidas para la votación.                      |
+| Restricciones inválidas o faltantes           | 400         | "restricciones inválidas o faltantes"                            | El campo `restrictions` está ausente o no es una lista válida.                            |
+| Error al insertar restricciones               | 500         | "No se insertaron de forma correcta las restricciones"           | Fallo en la inserción de restricciones de la configuración.                               |
+| Votantes directos inválidos o faltantes       | 400         | "Votantes inválidas o faltantes"                                 | El campo `allowedVoters` está ausente o no es una lista válida.                           |
+| Error al insertar votantes directos           | 500         | "No se insertaron de forma correcta los votantens directos"      | Fallo al insertar los votantes autorizados para la votación.                              |
+
+
+</details>  
+
+</details>
+   
   </details>
 
 </details>
