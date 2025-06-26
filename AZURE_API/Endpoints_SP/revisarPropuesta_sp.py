@@ -7,7 +7,7 @@ import pyodbc
 
 conn_str = os.environ.get("SQL_CONNECTION_STRING")
 
-def main(req: func.HttpRequest) -> func.HttpResponse:
+def revisarPropuesta_sp(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Endpoint revisarPropuesta invocado.')
 
     # Solo permitimos POST
