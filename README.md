@@ -1831,6 +1831,28 @@ RETURN 0
  
   </details>
 
+<details>
+<summary>Ver JSON de prueba principal</summary>
+
+```json
+
+{
+  "propuesta": "Iluminaci?n y vigilancia comunitaria inteligente",
+  "idCard": "769616758",
+  "agreementType": "Crowdfunding de donación",
+  "monto": 204233.31,
+  "transactionrefNumber": "TX-274868",
+  "finalDate": "2025-12-31",
+  "paymentDate": "2025-07-01",
+  "currency": "CRC",
+  "recurrencia": "mensual",
+  "plazosPago": 6
+}
+
+
+```
+</details> 
+
 #### Errores Personalizados
   <details>
   <summary>Ver errores personalizados</summary>
@@ -2544,6 +2566,87 @@ def InsertVotingConfing(req_body, session):
 	
 ```	
 </details>
+
+<details>
+<summary>Ver JSON de prueba principal</summary>
+
+```json
+
+{
+	"idCard":"239675389",
+    "proposalVersion":"Vigilancia comunitaria - Version inicial",
+    "openDate": "2025-06-16T12:00:00Z",
+    "closeDate": "2025-07-16T12:00:00Z",
+    "creationDate": "2025-06-10T08:00:00Z",
+    "VotingType": "Unica",
+    "description": "Vigilancia comunitaria - Version inicial",
+    "weight": 0,
+    "ReminderType": "Email",
+    "ClosureTypes": "Cierre hasta que los votantes terminen",
+    "VotingReasons": "Aval de propuesta",
+	"targetPopulations":[
+	
+		{
+			"name":"Jóvenes Adultos",
+			"weight":9.8
+		}
+	],
+	"impactZones":[
+	
+		{
+			"name":"Reducción de consumo hídrico"
+		},
+		{
+			"name":"Extensión temporal del proyecto"
+		}
+	],
+	"questions":[
+	
+		{
+			"name":"¿Cuál es su fuente principal de agua potable?",
+			"orderBy":1
+		}
+	],
+	"rules":[
+	
+		{
+			"name":"Regla A"
+		},
+		{
+			"name":"Regla B"
+		},
+		{
+			"name":"Regla C"
+		}
+	],
+	"restrictions":[
+	
+		{
+			"name":"Solo pueden votar mayores de 18 años"
+		},
+		{
+			"name":"Votación exclusiva para San José"
+		},
+		{
+			"name":"Correo debe contener dominio @tec.ac.cr"
+		}
+	],
+    "allowedVoters":[
+	
+		{
+			"idCard":"769616758"
+		},
+		{
+			"idCard":"239675389"
+		},
+		{
+			"idCard":"233644610"
+		}
+	]
+}
+
+```
+</details> 
 
 #### Errores Personalizados
   <details>
