@@ -2,32 +2,32 @@
 -- Tipo de vistas 
 INSERT INTO [dbo].[vpv_proposalViewTypes] ([name], [enable])
 VALUES
-    ('Gráfica de barras', 1),
-    ('Gráfica de líneas', 1),
+    ('GrÃ¡fica de barras', 1),
+    ('GrÃ¡fica de lÃ­neas', 1),
     ('Comparativa anual', 1),
     ('Indicadores KPI', 1),
     ('Resumen ejecutivo', 1),
     ('Mapa de calor', 1),
-    ('Tabla dinámica', 1)
+    ('Tabla dinÃ¡mica', 1)
 
 
 --Tipos de propuesta 
 
 INSERT INTO [dbo].[vpv_proposalTypes] ([name], [description], [enable])
 VALUES
-    ('Proyecto de ley', 'Propuesta para crear, modificar o derogar una ley vigente a través del proceso legislativo.', 1),
-    ('Propuesta tecnológica', 'Iniciativa para implementar soluciones digitales o herramientas tecnológicas en instituciones o comunidades.', 1),
-    ('Propuesta ambiental', 'Iniciativas enfocadas en la protección del medio ambiente, sostenibilidad o mitigación del cambio climático.', 1),
-    ('Propuesta educativa', 'Proyectos dirigidos a mejorar el acceso, calidad o cobertura de la educación.', 1),
-    ('Propuesta de salud pública', 'Acciones para fortalecer el sistema de salud, campañas preventivas o mejora de servicios médicos.', 1),
-    ('Propuesta de infraestructura', 'Obras públicas como carreteras, puentes, edificios comunitarios o redes eléctricas.', 1),
-    ('Propuesta social', 'Propuestas orientadas a mejorar la inclusión, equidad, y condiciones sociales de poblaciones vulnerables.', 1),
+    ('Proyecto de ley', 'Propuesta para crear, modificar o derogar una ley vigente a travÃ©s del proceso legislativo.', 1),
+    ('Propuesta tecnolÃ³gica', 'Iniciativa para implementar soluciones digitales o herramientas tecnolÃ³gicas en instituciones o comunidades.', 1),
+    ('Propuesta ambiental', 'Iniciativas enfocadas en la protecciÃ³n del medio ambiente, sostenibilidad o mitigaciÃ³n del cambio climÃ¡tico.', 1),
+    ('Propuesta educativa', 'Proyectos dirigidos a mejorar el acceso, calidad o cobertura de la educaciÃ³n.', 1),
+    ('Propuesta de salud pÃºblica', 'Acciones para fortalecer el sistema de salud, campaÃ±as preventivas o mejora de servicios mÃ©dicos.', 1),
+    ('Propuesta de infraestructura', 'Obras pÃºblicas como carreteras, puentes, edificios comunitarios o redes elÃ©ctricas.', 1),
+    ('Propuesta social', 'Propuestas orientadas a mejorar la inclusiÃ³n, equidad, y condiciones sociales de poblaciones vulnerables.', 1),
     ('Propuesta cultural', 'Proyectos para preservar, difundir o desarrollar el patrimonio y actividades culturales.', 1),
-    ('Propuesta económica', 'Acciones dirigidas a estimular la economía local, emprendimientos o generación de empleo.', 1),
-    ('Propuesta deportiva', 'Fomento de la actividad física, apoyo a ligas deportivas o construcción de instalaciones.', 1),
-    ('Propuesta de seguridad', 'Medidas para prevenir el delito, mejorar la vigilancia o implementar tecnologías de seguridad.', 1),
-    ('Propuesta participativa', 'Mecanismos que promuevan la participación ciudadana o procesos de gobernanza abierta.', 1),
-    ('Propuesta piloto', 'Prueba controlada de nuevas ideas antes de su implementación general.', 1),
+    ('Propuesta econÃ³mica', 'Acciones dirigidas a estimular la economÃ­a local, emprendimientos o generaciÃ³n de empleo.', 1),
+    ('Propuesta deportiva', 'Fomento de la actividad fÃ­sica, apoyo a ligas deportivas o construcciÃ³n de instalaciones.', 1),
+    ('Propuesta de seguridad', 'Medidas para prevenir el delito, mejorar la vigilancia o implementar tecnologÃ­as de seguridad.', 1),
+    ('Propuesta participativa', 'Mecanismos que promuevan la participaciÃ³n ciudadana o procesos de gobernanza abierta.', 1),
+    ('Propuesta piloto', 'Prueba controlada de nuevas ideas antes de su implementaciÃ³n general.', 1),
     ('Propuesta experimental', 'Iniciativas que exploran enfoques no convencionales o innovadores.', 1)
 
 -- Estados de procesos de propuestas, archivos, comentarios
@@ -38,8 +38,8 @@ VALUES
     ('En proceso'),
     ('Rechazado'),
     ('Aprobado'),
-    ('Pendiente de revisión'),
-    ('En validación'),
+    ('Pendiente de revisiÃ³n'),
+    ('En validaciÃ³n'),
     ('Observado'),
     ('Completado'),
     ('Cancelado'),
@@ -52,10 +52,10 @@ VALUES
 INSERT INTO [dbo].[vpv_governmentEntities] ([name], [acronym], [enable]) 
 VALUES
     ('Caja Costarricense de Seguro Social', 'CCSS', 1),
-    ('Ministerio de Educación Pública', 'MEP', 1),
+    ('Ministerio de EducaciÃ³n PÃºblica', 'MEP', 1),
     ('Ministerio de Hacienda', 'MH', 1),
     ('Instituto Costarricense de Electricidad', 'ICE', 1),
-    ('Ministerio de Obras Públicas y Transportes', 'MOPT', 1),
+    ('Ministerio de Obras PÃºblicas y Transportes', 'MOPT', 1),
     ('Ministerio de Salud', 'MS', 1),
     ('Instituto Nacional de Seguros', 'INS', 1),
     ('Instituto Costarricense de Turismo', 'ICT', 1),
@@ -65,28 +65,28 @@ VALUES
     ('Universidad Nacional', 'UNA', 1),
     ('Instituto Nacional de Aprendizaje', 'INA', 1),
     ('Ministerio de Justicia y Paz', 'MJP', 1),
-    ('Ministerio de Ciencia, Innovación, Tecnología y Telecomunicaciones', 'MICITT', 1)
+    ('Ministerio de Ciencia, InnovaciÃ³n, TecnologÃ­a y Telecomunicaciones', 'MICITT', 1)
 
 
 
 
 INSERT INTO [dbo].[vpv_governmentBenefits] ([benefit], [enable], [dataType])
 VALUES
-    ('Incentivo económico de la CCSS', 1, 'decimal'),
+    ('Incentivo econÃ³mico de la CCSS', 1, 'decimal'),
     ('Subsidio mensual de vivienda', 1, 'decimal'),
     ('Tener al menos 10 empleados en el proyecto', 1, 'integer'),
-    ('Número de adultos mayores beneficiados', 1, 'integer'),
+    ('NÃºmero de adultos mayores beneficiados', 1, 'integer'),
     ('Acceso gratuito a servicios de salud primaria', 1, 'bit'),
-    ('Participación en capacitaciones del INA', 1, 'bit'),
-    ('Descuento en servicios eléctricos del ICE', 1, 'decimal'),
+    ('ParticipaciÃ³n en capacitaciones del INA', 1, 'bit'),
+    ('Descuento en servicios elÃ©ctricos del ICE', 1, 'decimal'),
     ('Cantidad de estudiantes beneficiados por beca', 1, 'integer'),
     ('Disponibilidad de servicio de transporte', 1, 'bit'),
     ('Monto asignado por el MEP para materiales', 1, 'decimal'),
     ('Alquiler subsidiado por el IMAS', 1, 'decimal'),
-    ('Participación en programa de salud preventiva', 1, 'bit'),
+    ('ParticipaciÃ³n en programa de salud preventiva', 1, 'bit'),
     ('Cantidad de computadoras entregadas', 1, 'integer'),
     ('Cobertura de seguro por el INS', 1, 'bit'),
-    ('Reducción de tarifas municipales', 1, 'decimal')
+    ('ReducciÃ³n de tarifas municipales', 1, 'decimal')
 
 
 -- Condiciones de avales externos (No gobierno)
@@ -95,11 +95,11 @@ INSERT INTO [dbo].[vpv_sponsornGroupTypes] ([name], [enable])
 VALUES
     ('Incubadora de empresas', 1),
     ('Aceleradora de negocios', 1),
-    ('Grupo de inversión', 1),
-    ('Organización sin fines de lucro', 1),
+    ('Grupo de inversiÃ³n', 1),
+    ('OrganizaciÃ³n sin fines de lucro', 1),
     ('Agencia de desarrollo regional', 1),
     ('Banco de desarrollo', 1),
-    ('Cámara empresarial', 1),
+    ('CÃ¡mara empresarial', 1),
     ('Cooperativa de apoyo', 1),
     ('Organismo internacional', 1),
     ('Red de mentores', 1)
@@ -116,7 +116,7 @@ VALUES
 ('Parque La Libertad', 'SponsorGroup', 1, 0, 4),
 ('PROCOMER', 'SponsorGroup', 1, 0, 5),         
 ('GNPlus', 'SponsorGroup', 1, 0, 6),           
-('Fundación CRUSA', 'SponsorGroup', 1, 0, 7),  
+('FundaciÃ³n CRUSA', 'SponsorGroup', 1, 0, 7),  
 ('InnovaAP', 'SponsorGroup', 1, 0, 8),         
 ('Impact Hub SJ', 'SponsorGroup', 1, 0, 9),    
 ('CONICIT', 'SponsorGroup', 1, 0, 10) 
@@ -125,10 +125,10 @@ VALUES
 
 INSERT INTO [dbo].[vpv_sponsorAgrementsType] ([name], [description], [dataType])
 VALUES
-('Crowdfunding de donación', 'Aportes voluntarios sin retorno económico directo', 'bit'),
-('Crowdfunding de recompensa', 'Aportes a cambio de un beneficio simbólico o material', 'bit'),
-('Crowdfunding de préstamo', 'Financiamiento con obligación de reembolso con o sin intereses', 'decimal'),
-('Crowdfunding de inversión', 'Participación a cambio de una parte del capital o utilidades', 'integer'),
+('Crowdfunding de donaciÃ³n', 'Aportes voluntarios sin retorno econÃ³mico directo', 'bit'),
+('Crowdfunding de recompensa', 'Aportes a cambio de un beneficio simbÃ³lico o material', 'bit'),
+('Crowdfunding de prÃ©stamo', 'Financiamiento con obligaciÃ³n de reembolso con o sin intereses', 'decimal'),
+('Crowdfunding de inversiÃ³n', 'ParticipaciÃ³n a cambio de una parte del capital o utilidades', 'integer'),
 ('Apoyo con producto o servicio', 'El patrocinador entrega bienes o servicios en lugar de dinero', 'bit')
 
 
@@ -149,7 +149,7 @@ BEGIN
     VALUES 
         ('Cada semana', 'semanal', 1),
         ('Cada mes', 'mensual', 1),
-        ('Cada 15 días', 'semanal', 2);
+        ('Cada 15 dÃ­as', 'semanal', 2);
 
     DECLARE @i INT = 1;
     DECLARE @mes INT;
@@ -170,6 +170,9 @@ BEGIN
         SET @i += 1;
     END
 END;
+GO
+
+EXEC vpvSP_LlenarSchedules
 GO
 
 
@@ -199,14 +202,14 @@ VALUES
     ('Aporte voluntario', 0),
     ('Compra de recompensa', 0),
     ('Reembolso propuesta cancelada', 0),
-    ('Aprobación de financiamiento', 0),
+    ('AprobaciÃ³n de financiamiento', 0),
     ('Pago de propuesta', 0),
-    ('Activación de beneficio', 0),
-    ('Crédito institucional', 0),
-    ('Cancelación de participación', 0),
-    ('Inversión de Usuario', 0),
-	('Inversión de Entidad', 0),
-	('Inversión de Sponsor', 0),
+    ('ActivaciÃ³n de beneficio', 0),
+    ('CrÃ©dito institucional', 0),
+    ('CancelaciÃ³n de participaciÃ³n', 0),
+    ('InversiÃ³n de Usuario', 0),
+	('InversiÃ³n de Entidad', 0),
+	('InversiÃ³n de Sponsor', 0),
 	('Inversion a un plan',0)
 
 
@@ -255,7 +258,7 @@ VALUES
 --PAGOS
 
 INSERT INTO dbo.vpv_currencies(currencyId, name, acronym, symbol)--
-VALUES (1, 'Colón Costa Rica', 'CRC', '¢'),(2, 'Dólar Estados Unidos', 'USD', '$');
+VALUES (1, 'ColÃ³n Costa Rica', 'CRC', 'Â¢'),(2, 'DÃ³lar Estados Unidos', 'USD', '$');
 
 	-- inserciones CRC ? USD (currencyId = 1)
 INSERT INTO dbo.vpv_exchangeRates--F
@@ -293,7 +296,7 @@ BEGIN
     DECLARE @configurationDetails NVARCHAR(MAX);
     DECLARE @refreshToken VARBINARY(256);
 
-	-- Cursor para recorrer los métodos de pago existentes, recibiendo loda daros de la consulta select de la tabla que contiene los metodos de pago
+	-- Cursor para recorrer los mÃ©todos de pago existentes, recibiendo loda daros de la consulta select de la tabla que contiene los metodos de pago
     DECLARE method_cursor CURSOR FOR
         SELECT [name], [methodId]
         FROM [dbo].[vpv_paymentMethods]; 
