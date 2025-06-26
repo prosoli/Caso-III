@@ -1,7 +1,11 @@
 # 🎓 Caso #3 - 35%
 
-### 🛠️ Temas Abordados:
-- 
+### 🛠️ Temas Abordado:
+El objetivo del proyecto es crear una plataforma de voto electrónico que sea accesible, segura y multifuncional. Esta herramienta permitirá a ciudadanos y organizaciones registrar propuestas de diversa índole, desde decisiones administrativas hasta proyectos municipales o reformas legales, y someterlas a votación de públicos específicos. Las votaciones serán parametrizables, con reglas claras y mecanismos de validación, alcanzando poblaciones segmentadas según diversos criterios como edad, ubicación, afiliación o profesión. Este sistema busca promover un entorno donde la voz ciudadana pueda incidir de manera ágil y directa en múltiples esferas.
+
+El módulo de crowdfunding del sistema de voto electrónico tiene como objetivo impulsar la innovación y el emprendimiento en Costa Rica mediante un proceso participativo, transparente y digitalmente gobernado. Este módulo permite que ciudadanos y organizaciones presenten propuestas de proyectos con potencial empresarial, los cuales podrán ser evaluados y validados por entidades especializadas como aceleradoras, incubadoras o grupos de inversión. 
+
+El Micitt debe presentar un prototipo de Voto Pura Vida a los poderes de la república enfocado en el caso de uso del crowdfunding para obtener el visto bueno con el que el proyecto irá avanzando.
 
 ---
 
@@ -1131,7 +1135,54 @@ INSERT INTO [dbo].[vpv_statusVoting]
 </details>
 
 
-## Dashboard de Consulta
+# Dashboard de Consulta
+
+Puede acceder al dashboard principal en Power BI mediante el siguiente enlace embebido:
+
+[Dashboard de Votaciones - Power BI](https://app.powerbi.com/reportEmbed?reportId=56d22684-d572-4fec-a32f-35f3be5be30e&autoAuth=true&ctid=bfcf1d9d-93ea-43b1-b902-1daa68a64248)
+
+
+<details>
+  <summary>Desplegar información completa del Dashboard</summary>
+
+## Flujo para el acceso al dashboard
+
+### 1. Inicio de sesión (Login)
+
+- El usuario debe autenticarse con sus credenciales válidas (usuario y contraseña).
+- El sistema valida la identidad y los permisos del usuario.
+- En caso de credenciales incorrectas, se mostrará un mensaje de error y no se permitirá el acceso.
+
+### 2. Validación de privilegios
+
+- Tras un inicio de sesión exitoso, el sistema verifica el nivel de privilegios del usuario.
+  
+### 3. Visualización del dashboard principal
+
+- Si el usuario tiene los privilegios requeridos, se carga y muestra el dashboard principal.
+- El dashboard presenta:
+  - Resumen de votaciones recientes (top 5).
+  - Resultados agregados y segmentados.
+  - Información financiera para propuestas de crowdfunding.
+  - Segmentación demográfica de votos.
+  - Detalles por pregunta y opción de respuesta.
+
+### 4. Navegación y uso
+
+- La información es presentada de manera segura, sin opción para descarga o exportación.
+- Los datos se actualizan en tiempo real.
+
+---
+
+## Consideraciones de seguridad
+
+- La validación estricta de privilegios asegura que solo usuarios autorizados accedan a información sensible.
+- La interfaz protege los datos y evita su descarga o exporatcion de los datos para mantener la confidencialidad.
+
+---
+
+Este flujo garantiza un acceso controlado y seguro al dashboard, promoviendo la transparencia y eficiencia en el seguimiento de los procesos de votación electrónica.
+
 
 ### Inicio de Sesión
   <details>
@@ -1139,13 +1190,255 @@ INSERT INTO [dbo].[vpv_statusVoting]
     en construccion
   </details>
 
-### Dashboard principal
-  <details>
+## Dashboard principal
+
+El dashboard del sistema de voto electrónico está desarrollado utilizando **Power BI**, una herramienta de visualización de datos que permite integrar de forma eficiente los resultados del sistema con la arquitectura de datos utilizada en el diseno de bases de datos.
+
+### Consideraciones técnicas:
+
+- Power BI se conecta directamente a la base de datos **puravidadb**.
+
+
+<details>
   <summary>Desplegar información</summary>
-    
-  </details>
+
+
+A continuación, se muestran las posibles versiones del dashboard, cada una de las cuales presenta información clave sobre la votación de propuestas clasificadas como **crowdfunding o no crowdfunding**.
+
+Cada versión del dashboard incluye:
+
+- La **cantidad de votos ejecutados**.
+- El **nombre de la versión de propuesta** a la que corresponden los resultados.
+- Segmentación detallada de los resultados con base en datos demográficos relevantes.
+- Los resultados agregados por opción de respuesta, este caso al presionar cada pregunta se muestran las opciones pertenecientes. 
+
+## Segmentación Demográfica
+
+Los datos están organizados según los siguientes criterios:
+
+### 1. Sexo
+
+Representa el número de votantes según su género:
+
+- **Masculino**
+- **Femenino**
+
+### 2. Ubicación Geográfica
+
+Segmentación basada en la **provincia de Costa Rica** desde donde se emitió el voto. Las provincias consideradas son:
+
+- San José
+- Alajuela
+- Cartago
+- Heredia
+- Guanacaste
+- Puntarenas
+- Limón
+
+### 3. Nacionalidad
+
+Indica la distribución de votantes según su nacionalidad:
+
+- **Costarricenses**
+- **Otras nacionalidades** (personas extranjeras que participaron en la votación)
+
+
+
+---
+
+#### Votación de propuesta de tipo crowdfunding
+
+Esta vista muestra un resumen visual y analítico del estado de votación asociado a una propuesta clasificada como crowdfunding. Su objetivo es permitir a los usuarios monitorear en tiempo real la participación, los resultados y las métricas clave relacionadas con el proceso de votación.
+
+- En propuestas de tipo **emprendimiento o crowdfunding**, se incluye información adicional:
+  - **Monto total solicitado** por el proyecto.
+  - **Monto recibido** a través de inversión ciudadana.
+  - **Monto ejecutado** a la fecha, según el plan de desembolsos.
+
+![image](https://github.com/user-attachments/assets/7b24c8c1-a290-4cf2-a176-7595cb8af2ee)
+
+---
+
+#### Votación de propuesta de tipo regular
+
+Esta vista muestra un resumen visual y analítico del estado de votación asociado a una propuesta clasificada como votación regular. En este caso, se muestra cómo no es una propuesta que posea inversión ni solicitud de la misma. Su objetivo es permitir a los usuarios monitorear en tiempo real la participación, los resultados y las métricas clave relacionadas con el proceso de votación sin tomar en cuenta valores monetarios.
+
+![alt text](assets/dashboardNoCrowfounding.png)
+
+#### Vistas utilizadas para almacenar y mostrar los datos necesarios
+
+La elaboración y recolección de datos se realiza a través de la creación de **vistas** en la base de datos. Estas vistas agrupan información importante y permiten obtener fácilmente las **5 votaciones más recientes** junto con sus datos asociados.
+
+---
+ 
+#####  Ventajas de usar vistas (views)
+
+1. **Facilitan el trabajo**  
+   Las vistas ayudan a simplificar consultas complicadas. Se puede reutilizar una misma vista en varios lugares sin volver a escribir el mismo código.
+
+2. **Fáciles de mantener y de actualizacion de datos**  
+   Si algo cambia en la estructura de los datos, solo se actualiza la vista y no todas las consultas que la usan.
+
+3. **Mayor seguridad**  
+   Es posible mostrar solo ciertos datos a los usuarios, ocultando la información sensible sin modificar las tablas originales.
+
+4. **Conexión directa con Power BI**  
+   Power BI puede conectarse fácilmente a las vistas, lo que hace más fácil mostrar los datos en gráficos y reportes.
+
+5. **Resultados consistentes**  
+   Al usar una misma vista para todos los reportes, se asegura que todos vean los mismos datos, sin diferencias.
+
+##### Vista: `vw_RecentVotingConfigs`
+
+Esta vista fue creada para mostrar las **5 votaciones más recientes** configuradas en el sistema. Se utiliza principalmente como fuente de datos principal para el dashboard de votaciones en Power BI.
+
+---
+
+#### Query SQL
+
+```sql
+CREATE OR ALTER VIEW [dbo].[vw_RecentVotingConfigs] AS
+SELECT TOP 5
+    idVotingConfig,
+    description,
+    creationDate,
+    proposalVersionId,
+    ROW_NUMBER() OVER (ORDER BY creationDate DESC) AS RowNum
+FROM vpv_VotingConfigurations
+ORDER BY creationDate DESC;
+GO
+```
+
+#### Vista: `vw_ProposalInvestments`
+
+La vista `vw_ProposalInvestments` fue diseñada para mostrar información financiera clave de las **propuestas de tipo crowdfunding** que están dentro de las 5 votaciones más recientes del sistema. Esta vista recopila datos importantes como el presupuesto solicitado, el dinero invertido por la ciudadanía y el monto ya ejecutado según los planes de inversión.
+
+Se utiliza especialmente en **Power BI**, como parte del dashboard del sistema de voto electrónico, para brindar transparencia y control sobre el uso de fondos públicos o ciudadanos.
+
+---
+
+#### Query SQL
+
+```sql
+CREATE VIEW [dbo].[vw_ProposalInvestments] AS
+SELECT 
+    rpv.RowNum,
+    p.tittle AS Propuesta,
+    p.budget AS Monto_Solicitado,
+
+    -- Inversión ciudadana
+    (SELECT SUM(t1.amount)
+     FROM vpv_transactionPerPlan tc
+     INNER JOIN vpv_transactions t1 ON t1.transactionId = tc.transactionId
+     INNER JOIN vpv_transSubTypes st1 ON st1.transactionSubTypeId = t1.transactionSubTypeId
+     WHERE tc.crowdfoundingProposalId = cp.crowdfoundingProposalId
+       AND st1.name = 'Inversión de Usuario') AS Inversion_Ciudadana,
+
+    -- Inversión por plan
+    (SELECT SUM(t2.amount)
+     FROM vpv_executionPlans ep
+     INNER JOIN vpv_transactionPerPlan tp ON tp.executionPlanId = ep.executionPlanId
+     INNER JOIN vpv_transactions t2 ON t2.transactionId = tp.transactionId
+     INNER JOIN vpv_transSubTypes st2 ON st2.transactionSubTypeId = t2.transactionSubTypeId
+     WHERE ep.crowdfoundingProposalId = cp.crowdfoundingProposalId
+       AND st2.name = 'Inversion a un Plan') AS Monto_Ejecutado
+
+FROM vw_RecentVotingConfigs rpv
+INNER JOIN vpv_proposalVersions pv ON rpv.proposalVersionId = pv.proposalversionId
+INNER JOIN vpv_proposals p ON p.proposalId = pv.proposalId
+INNER JOIN vpv_crowdfoundingProposals cp ON cp.proposalId = p.proposalId;
+GO
+```
+#### Vista: `vw_ResultPerFilter_Segmentation`
+
+Esta vista se creó para mostrar la **segmentación de resultados de votaciones** basada en filtros demográficos, como sexo, nacionalidad y provincia. Su objetivo es facilitar el análisis detallado de cómo se distribuyen los votos según diferentes características sociales, manteniendo el enfoque en las votaciones más recientes.
+
+---
+
+####  Query SQL
+
+```sql
+CREATE VIEW [dbo].[vw_ResultPerFilter_Segmentation] AS
+SELECT 
+    rvc.RowNum,
+    rvc.idVotingConfig,
+    rvc.description AS votingDescription,
+    rvc.creationDate,
+    ft.name AS filterName,
+    ds.name AS subFilterName,       -- Nombre descriptivo del subtipo
+    rf.referenceId1,
+    rf.votesCount,
+    rf.votesPercentage
+FROM vw_RecentVotingConfigs rvc
+JOIN vpv_ResultsPerFilter rf ON rvc.idVotingConfig = rf.idVotingConfig
+JOIN vpv_FilterTypes ft ON rf.idFilterType = ft.idFilterType
+JOIN vpv_demosubtype ds ON rf.referenceId1 = ds.demosubtypeid
+WHERE ft.name IN ('Sexo', 'Nacionalidad', 'Provincia')
+  AND rf.enable = 1;
+GO
+```
+#### Vista: `vw_ResultPerOption_ByQuestion`
+
+Esta vista muestra los resultados de votación **desglosados por opción para cada pregunta** dentro de las votaciones más recientes. Permite analizar cómo se distribuyeron los votos entre las diferentes opciones de cada pregunta en una configuración de votación.
+
+---
+
+#### Query SQL
+
+```sql
+CREATE OR ALTER VIEW [dbo].[vw_ResultPerOption_ByQuestion] AS
+SELECT
+    vc.RowNum,
+    vc.idVotingConfig,
+    vc.description AS VotingConfigName,
+    q.idVotingQuestions,
+    qs.description AS QuestionDescription,
+    o.idOptionQuestion,
+    o.value AS OptionValue,
+    o.description AS OptionDescription,
+    rpo.votesCount,
+    rpo.votesPercentage,
+    rpo.winner
+FROM vw_RecentVotingConfigs vc
+JOIN vpv_votingQuestions q ON q.idVotingConfig = vc.idVotingConfig
+INNER JOIN vpv_questions qs ON q.idQuestion = qs.idQuestion
+JOIN vpv_OptionsQuestion o ON q.idQuestion = o.idQuestions
+LEFT JOIN vpv_ResultsPerOption rpo ON rpo.idOptionQuestion = o.idOptionQuestion;
+GO
+```
+#### Vista: `vw_Top5VotingResultsSummary`
+
+Esta vista proporciona un resumen de los resultados de las votaciones que están entre las 5 más recientes, basándose en la vista `vw_RecentVotingConfigs`. Sirve para mostrar datos agregados y métricas clave sobre el desempeño de cada votación.
+
+---
+
+####  Query SQL
+
+```sql
+CREATE OR ALTER VIEW [dbo].[vw_Top5VotingResultsSummary] AS
+SELECT
+    rs.idVotingResultsSummary,
+    rs.idVotingConfig,
+    rs.idEndOfVoting,
+    rs.description,
+    rs.idVotingResultStatus,
+    rs.votesCount,
+    rs.ValidVotesPercentage,
+    rs.checkSum,
+    rs.creationDate,
+    rs.enable,
+    rs.average,
+    rvc.RowNum
+FROM dbo.vpv_VotingResultsSummary rs
+INNER JOIN dbo.vw_RecentVotingConfigs rvc
+    ON rs.idVotingConfig = rvc.idVotingConfig;
+GO
+```
+
+Estas vistas son esenciales para alimentar el dashboard y asegurar que se muestre la información correcta de forma rápida y clara.
 
 </details>
 
-![alt text](assets/dashboardNoCrowfounding.png)
+</details>
+
 
