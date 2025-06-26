@@ -1118,6 +1118,146 @@ INSERT INTO [dbo].[vpv_statusVoting]
 <details>
   <summary>Desplegar información</summary>
 
+  Implementación del API Serverless para el Sistema de Voto Electrónico y Crowdfunding
+
+Introducción
+
+Para la implementación del API del sistema de voto electrónico y crowdfunding, se ha decidido utilizar un service serverless que se desarrollará en Python, aprovechando la integración con Azure Functions. Aunque el modelo serverless es típicamente para la nube, en este caso el despliegue será completamente local para garantizar que todos los miembros del equipo trabajen con la misma implementación y tengan acceso uniforme a la base de datos local.
+
+Esta estrategia aporta varias ventajas importantes:
+
+- Consistencia: Todos los desarrolladores usan el mismo entorno local, evitando diferencias entre máquinas.
+- Colaboración distribuida: Facilita el trabajo en equipo sin necesidad de conexión constante a la nube.
+- Portabilidad: Se puede trasladar fácilmente el entorno a cualquier computadora sin cambios en la configuración.
+- Preparación para despliegue en la nube: La arquitectura serverless mantiene la compatibilidad para futuras migraciones a Azure esto por medio de la herramienta de tipo extension que VSCODE brinda para que sea sencillo el despliegue.
+
+Arquitectura y tecnología elegida
+
+Azure Functions
+
+- Se usa Azure Functions Core Tools para correr el servicio localmente, simulando un entorno serverless.
+- Las funciones serán el punto de entrada para las solicitudes API.
+- El runtime maneja automáticamente la asignación y liberación de recursos, así como el escalado si fuera necesario.
+- Se prueban y desarrollan las funciones en Visual Studio Code con la extensión de Azure Functions, permitiendo depuración y pruebas sencillas.
+
+Lenguaje de programación: Python
+
+- Python es ampliamente usado y soportado en Azure Functions.
+- Permite integración sencilla con bases de datos usando bibliotecas estándar.
+- Facilita la integración con posibles servicios de inteligencia artificial o análisis avanzado.
+
+Implementación del acceso a base de datos
+
+El API se divide en dos categorías para interactuar con la base de datos, ambas con enfoque en eficiencia, mantenibilidad y buenas prácticas de desarrollo:
+
+1. Procedimientos almacenados (Stored Procedures - SP)
+
+- Los procedimientos almacenados son bloques de código SQL predefinido que se ejecutan dentro del motor de base de datos.
+- Permiten encapsular lógica compleja, validaciones, y transacciones dentro de la base de datos.
+- En la implementación serverless, las funciones Azure invocarán estos procedimientos a través de la biblioteca pyodbc, que ofrece conexión y ejecución de consultas SQL en bases de datos Microsoft SQL Server.
+- Ventajas:
+  - Mejor rendimiento por ejecución directa en la base de datos.
+  - Centralización de la lógica de negocio en la base de datos.
+  - Mejor manejo transaccional y control de errores dentro del motor.
+- Desventajas:
+  - Menos flexible para cambios frecuentes en lógica de negocio.
+  - Más dependiente del motor de base de datos específico.
+
+2. ORM (Object-Relational Mapping) con SQLAlchemy
+
+- SQLAlchemy es una biblioteca ORM que permite mapear tablas y relaciones SQL a clases y objetos en Python.
+- Facilita la creación y manipulación de datos mediante objetos, haciendo el código más legible y mantenible.
+- Con SQLAlchemy se pueden definir modelos (clases) que representan las tablas, y luego realizar consultas y operaciones sobre esos modelos sin escribir SQL explícito.
+- Ventajas:
+  - Mayor flexibilidad y rapidez para cambios en la lógica de negocio.
+  - Independencia relativa del motor de base de datos (se puede cambiar fácilmente).
+  - Mejor integración con código Python y uso de patrones de diseño.
+- Desventajas:
+  - Puede tener un ligero impacto en rendimiento respecto a SP.
+  - Requiere aprendizaje y definición adecuada de los modelos.
+
+Flujo general para los endpoints API
+
+Cada endpoint en el API serverless seguirá los siguientes pasos clave:
+
+1. Recepción de la petición: la función Azure recibe la solicitud HTTP con los parámetros necesarios.
+2. Validaciones iniciales: se verifican credenciales, formato de datos y autorizaciones.
+3. Ejecución de la lógica:
+   - Si es un endpoint basado en SP, se conecta a la base de datos y ejecuta el procedimiento almacenado correspondiente con los parámetros recibidos.
+   - Si es un endpoint basado en ORM, se utiliza SQLAlchemy para manipular los modelos y realizar las consultas o actualizaciones necesarias.
+4. Control transaccional: se asegura que las operaciones críticas (como registro de votos) sean atómicas y consistentes.
+5. Respuesta: se formatea y envía la respuesta al cliente, con la información solicitada o confirmación de la operación.
+
+Instalación y configuración
+
+Para trabajar con este sistema localmente, se deben instalar las siguientes herramientas y librerías:
+
+- Azure Functions Core Tools: para correr y probar localmente las funciones serverless.
+
+npm install -g azure-functions-core-tools@4
+
+- Extensión Azure Functions en Visual Studio Code: facilita desarrollo y pruebas.
+
+- Python y librerías necesarias: en el entorno virtual o global de Python instalar:
+
+pip install azure-functions pyodbc sqlalchemy
+
+- Herramientas para probar API: como Postman o Thunder Client (extensión VS Code).
+
+### Estructura del Proyecto Azure API
+
+<details>
+  <summary>Desplegar información</summary>
+
+Este proyecto implementa un API serverless con Azure Functions en Python para el sistema de voto electrónico y crowdfunding. A continuación se describe la estructura de carpetas y archivos principales que lo conforman.
+
+---
+
+## Archivos principales
+
+- **host.json**  
+  Archivo de configuración global para Azure Functions. Define el comportamiento del runtime de las funciones, como tiempos de espera, logging, entre otros.
+
+- **function_app.py**  
+  Archivo principal donde se definen las funciones de Azure (endpoints) que responderán a las peticiones HTTP. Aquí se conecta la lógica de negocio con el runtime serverless.
+
+- **database.py**  
+  Módulo que contiene la configuración de conexión a la base de datos, ya sea a través de pyodbc para procedimientos almacenados o SQLAlchemy para ORM. También puede incluir funciones de acceso común.
+
+- **local.settings.json**  
+  Archivo para configuración local del entorno, incluyendo variables de ambiente como cadenas de conexión a bases de datos y claves secretas. No debe subirse a repositorios públicos.
+
+- **.env**  
+  Archivo de variables de entorno (opcional), utilizado para gestionar configuraciones sensibles en desarrollo local.
+
+---
+
+## Carpetas principales
+
+- **Models/**  
+  Contiene las definiciones de modelos de datos y clases ORM que representan las tablas y relaciones en la base de datos. Facilita la manipulación y consulta de datos en código Python.
+
+- **JSON_Examples/**  
+  Contiene ejemplos de archivos JSON utilizados para pruebas, payloads de solicitudes o respuestas, y documentación de formatos de entrada/salida del API.
+
+- **Endpoints_SP/**  
+  Carpeta dedicada a la implementación de endpoints que consumen **Procedimientos Almacenados (Stored Procedures)** a través de pyodbc. Aquí se define la lógica para ejecutar los SP y procesar sus resultados.
+
+- **Endpoints_ORM/**  
+  Carpeta dedicada a la implementación de endpoints que utilizan el **ORM SQLAlchemy** para el acceso y manipulación de datos. Aquí se define la lógica basada en modelos y consultas ORM.
+
+Esta estructura permite mantener el código organizado, separando claramente las responsabilidades:
+
+- Configuración y runtime (host.json, local.settings.json, .env)
+- Lógica principal de funciones (function_app.py)
+- Acceso a base de datos (database.py, Models/)
+- Diferentes estilos de implementación (Endpoints_SP para SP y Endpoints_ORM para ORM)
+- Recursos y ejemplos para pruebas (JSON_Examples)
+
+---
+
+</details>
+
   ### Endpoints implementados por Stored Procedures
   ---
   <details>
@@ -1135,7 +1275,7 @@ INSERT INTO [dbo].[vpv_statusVoting]
 </details>
 
 
-# Dashboard de Consulta
+## Dashboard de Consulta
 
 Puede acceder al dashboard principal en Power BI mediante el siguiente enlace embebido:
 
