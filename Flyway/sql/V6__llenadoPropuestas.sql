@@ -181,6 +181,248 @@ VALUES
 (GETDATE(), 1, 0, CHECKSUM('Dato de prueba'), GETDATE(), 5, 1000000.00, 1500000.00, 200000.00, 100000.00,
  'Reporte iluminaci�n', 'Seguimiento de la implementaci�n de c�maras de vigilancia y luminarias en barrios de alta incidencia delictiva.', 3, 1, 3, 1, 'Reporte fianciero de la propuesta de Seguridad p�blica', 2000000.00, 5);
 
+INSERT INTO vpv_parameters (name, configuration, enable)
+VALUES ('IA Azure', 'IA AZURE, return 1, checksum 1, rollback 1, logs 1', 1)
+GO
+
+INSERT INTO vpv_processtypes (name)
+VALUES ('Propuestas ambientales')
+GO
+
+INSERT INTO dbo.vpv_process
+(
+  processtypeid,
+  referencevalue,
+  referenceid,
+  parameterid,
+  processmethodid,
+  [name],
+  description,
+  enable,
+  fecha,
+  [order]
+)
+VALUES
+(
+  1,
+  3,
+  'proposalTypeId',  
+  1,
+  1,
+  N'Evaluación de Impacto Ambiental',
+  N'Proyecto de reciclaje en comunidades rurales que incluye la instalación de puntos de acopio.',
+  1,
+  GETDATE(),
+  1
+);
+GO
+
+ALTER TABLE dbo.vpv_workresults
+ALTER COLUMN referenceid NVARCHAR(50)
+GO
+	
+INSERT INTO dbo.vpv_workresults
+(
+  processid,        -- FK al registro en vpv_process
+  referencevalue,   -- valor de la llave
+  referenceid,      -- tipo de referencia: literal "proposalId"
+  timestamp,        -- fecha y hora de ejecución
+  error,            -- 0 = sin error
+  errorMessage,     -- texto indicando “Nulo”
+  details,          -- detalles (no admite NULL)
+  performedby       -- quién ejecutó el proceso
+)
+VALUES
+(
+  1,                          -- processid (reemplaza por el ID real)
+  1,                          -- referencevalue
+  N'proposalTypeId',              -- referenceid
+  GETDATE(),                  -- timestamp
+  0,                          -- error = false
+  N'Nulo',                    -- errorMessage
+  N'Ejecución exitosa sin observaciones',  -- detalles
+  N'IA Azure'                 -- performedby
+);
+
+-- Inserciones de información extraída (todas exitosas, workresultid = 1)
+INSERT INTO dbo.vpv_extractedinfos  
+  (workresultid, field_value, comments, error)  
+VALUES  
+  (1, N'5 puntos de acopio instalados',  
+      N'Extracción automática correcta', 0);
+
+INSERT INTO dbo.vpv_extractedinfos  
+  (workresultid, field_value, comments, error)  
+VALUES  
+  (1, N'200 kg de residuos reciclados',  
+      N'Extracción automática correcta', 0);
+
+INSERT INTO dbo.vpv_extractedinfos  
+  (workresultid, field_value, comments, error)  
+VALUES  
+  (1, N'30 participantes en talleres',  
+      N'Extracción automática correcta', 0);
+
+INSERT INTO dbo.vpv_extractedinfos  
+  (workresultid, field_value, comments, error)  
+VALUES  
+  (1, N'Duración del proyecto: 6 meses',  
+      N'Extracción automática correcta', 0);
+
+/***********************************
+  Ejemplo para PROPOSAL_ID = 2
+  Título: Plataforma digital de salud pública
+  Tipo     : proposalTypeId = 5
+***********************************/
+
+-- 1) Inserto el proceso
+INSERT INTO dbo.vpv_process
+  (processtypeid, referencevalue, referenceid,
+   parameterid, processmethodid,
+   [name], description, enable, fecha, [order])
+VALUES
+  (1, 5, N'proposalTypeId',
+   1, 1,
+   N'Desarrollo de plataforma de salud pública',
+   N'Creación de portal web y móvil para seguimiento de pacientes.',
+   1, GETDATE(), 1);
+GO
+
+-- 2) Inserto el resultado del proceso
+--    (asumo que processid = 2 en identity)
+INSERT INTO dbo.vpv_workresults
+  (processid, referencevalue, referenceid,
+   timestamp, error, errorMessage, details, performedby)
+VALUES
+  (2, 5, N'proposalTypeId',
+   GETDATE(), 0, N'Nulo',
+   N'Ejecución exitosa sin observaciones', N'IA Azure');
+GO
+
+-- 3) Inserto la info extraída
+--    (asumo que workresultid = 2)
+INSERT INTO dbo.vpv_extractedinfos (workresultid, field_value, comments, error)
+VALUES
+  (2, N'Registro de 1 000 pacientes completado', N'OK', 0),
+  (2, N'API integrada con sistema nacional de salud', N'OK', 0),
+  (2, N'Módulo de notificaciones en producción', N'OK', 0),
+  (2, N'TIempo de respuesta < 200 ms en pruebas', N'OK', 0);
+GO
+
+
+/***********************************
+  Ejemplo para PROPOSAL_ID = 3
+  Título: Iluminación y vigilancia comunitaria inteligente
+  Tipo     : proposalTypeId = 11
+***********************************/
+
+INSERT INTO dbo.vpv_process
+  (processtypeid, referencevalue, referenceid,
+   parameterid, processmethodid,
+   [name], description, enable, fecha, [order])
+VALUES
+  (1, 11, N'proposalTypeId',
+   1, 1,
+   N'Instalación de sensores de seguridad',
+   N'Colocación de cámaras IoT y luminarias inteligentes.',
+   1, GETDATE(), 1);
+GO
+
+-- asumo processid = 3
+INSERT INTO dbo.vpv_workresults
+  (processid, referencevalue, referenceid,
+   timestamp, error, errorMessage, details, performedby)
+VALUES
+  (3, 11, N'proposalTypeId',
+   GETDATE(), 0, N'Nulo',
+   N'Ejecución exitosa sin observaciones', N'IA Azure');
+GO
+
+-- asumo workresultid = 3
+INSERT INTO dbo.vpv_extractedinfos (workresultid, field_value, comments, error)
+VALUES
+  (3, N'10 cámaras instaladas y en línea', N'OK', 0),
+  (3, N'Red de iluminación activa en 5 calles', N'OK', 0),
+  (3, N'Alarma activada correctamente en simulacro', N'OK', 0),
+  (3, N'Portal de monitoreo accesible 24/7', N'OK', 0);
+GO
+
+
+/***********************************
+  Ejemplo para PROPOSAL_ID = 4
+  Título: Sistema inteligente de riego agrícola
+  Tipo     : proposalTypeId = 6
+***********************************/
+
+INSERT INTO dbo.vpv_process
+  (processtypeid, referencevalue, referenceid,
+   parameterid, processmethodid,
+   [name], description, enable, fecha, [order])
+VALUES
+  (1, 6, N'proposalTypeId',
+   1, 1,
+   N'Implementación de estaciones de riego',
+   N'Despliegue de sensores de humedad y válvulas automáticas.',
+   1, GETDATE(), 1);
+GO
+
+-- asumo processid = 4
+INSERT INTO dbo.vpv_workresults
+  (processid, referencevalue, referenceid,
+   timestamp, error, errorMessage, details, performedby)
+VALUES
+  (4, 6, N'proposalTypeId',
+   GETDATE(), 0, N'Nulo',
+   N'Ejecución exitosa sin observaciones', N'IA Azure');
+GO
+
+-- asumo workresultid = 4
+INSERT INTO dbo.vpv_extractedinfos (workresultid, field_value, comments, error)
+VALUES
+  (4, N'25 estaciones instaladas', N'OK', 0),
+  (4, N'Humedad promedio controlada al 40 %', N'OK', 0),
+  (4, N'Ahorro estimado de agua 30 %', N'OK', 0),
+  (4, N'Interfaz de control móvil operativa', N'OK', 0);
+GO
+
+
+/***********************************
+  Ejemplo para PROPOSAL_ID = 5
+  Título: Rescate de tradiciones culturales indígenas
+  Tipo     : proposalTypeId = 8
+***********************************/
+
+INSERT INTO dbo.vpv_process
+  (processtypeid, referencevalue, referenceid,
+   parameterid, processmethodid,
+   [name], description, enable, fecha, [order])
+VALUES
+  (1, 8, N'proposalTypeId',
+   1, 1,
+   N'Registro de tradiciones orales',
+   N'Digitización y archivo de cantos y relatos comunitarios.',
+   1, GETDATE(), 1);
+GO
+
+-- asumo processid = 5
+INSERT INTO dbo.vpv_workresults
+  (processid, referencevalue, referenceid,
+   timestamp, error, errorMessage, details, performedby)
+VALUES
+  (5, 8, N'proposalTypeId',
+   GETDATE(), 0, N'Nulo',
+   N'Ejecución exitosa sin observaciones', N'IA Azure');
+GO
+
+-- asumo workresultid = 5
+INSERT INTO dbo.vpv_extractedinfos (workresultid, field_value, comments, error)
+VALUES
+  (5, N'100 canciones grabadas', N'OK', 0),
+  (5, N'Entrevistas a 20 ancianos', N'OK', 0),
+  (5, N'Material subido a repositorio cultural', N'OK', 0),
+  (5, N'Portal web con acceso público', N'OK', 0);
+GO
+
 
 
 
