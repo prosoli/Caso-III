@@ -5,7 +5,6 @@ import logging
 import os
 import pyodbc
 
-# Obtiene la cadena de conexión desde la variable de entorno
 conn_str = os.environ.get("SQL_CONNECTION_STRING")
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -50,7 +49,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             cursor.execute("EXEC dbo.revisarPropuesta ?", proposal_id)
             conn.commit()
 
-            # El SP imprime un mensaje con PRINT, pero PyODBC no lo captura como rows.
             # Devolvemos un JSON con éxito.
             return func.HttpResponse(
                 json.dumps({"message": "Propuesta revisada exitosamente."}),
