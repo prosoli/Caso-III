@@ -1,11 +1,15 @@
 import azure.functions as func
 
+
 from Endpoints_SP.get_usuarios_sp import get_usuarios_sp
+from Endpoints_SP.crearActualizarPropuesta import crearActualizarPropuesta
 from Endpoints_SP.invertir_sp import invertir
 from Endpoints_SP.revisarPropuesta_sp import revisarPropuesta_sp
 
-from Endpoints_SP.crearActualizarPropuesta import crearActualizarPropuesta
+
 from Endpoints_ORM.get_usuarios_orm import get_usuarios_orm
+
+from Endpoints_ORM.votar import votar
 from Endpoints_ORM.configurarVotacion_orm import configurarVotacionORM
 
 
@@ -27,6 +31,12 @@ app.route(route="revisarPropuesta_sp", auth_level=func.AuthLevel.ANONYMOUS)(revi
 
 #EndPoint con ORM------------------------------------------------------------------------------------------------
 app.route(route="get_usuarios_orm", auth_level=func.AuthLevel.ANONYMOUS)(get_usuarios_orm)
+
+# Votar
+@app.function_name(name="votar")
+@app.route(route="votar", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
+def run_votar(req: func.HttpRequest) -> func.HttpResponse:
+    return votar(req)
 
 #Configurar votaciones por ORM
 app.route(route="configurarVotacionORM", auth_level=func.AuthLevel.ANONYMOUS)(configurarVotacionORM)
