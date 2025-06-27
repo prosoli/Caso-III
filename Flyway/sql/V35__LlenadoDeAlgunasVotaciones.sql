@@ -326,17 +326,17 @@ INSERT INTO vpv_optionsQuestion VALUES
  GETDATE(), 1, 3);
 GO
 
-INSERT INTO vpv_Voter (idVoter, age, idUser, checksum) VALUES
+INSERT INTO vpv_Voter (age, idUser, checksum) VALUES
 -- Voter 1
-(1, 28, 1, CAST('checksum_voter1' AS varbinary(max))),
+(28, 1, CAST('checksum_voter1' AS varbinary(max))),
 -- Voter 2
-(2 ,35, 2, CAST('checksum_voter2' AS varbinary(max))),
+(35, 2, CAST('checksum_voter2' AS varbinary(max))),
 -- Voter 3
-(3 ,21, 3, CAST('checksum_voter3' AS varbinary(max))),
+(21, 3, CAST('checksum_voter3' AS varbinary(max))),
 -- Voter 4
-(4 ,42, 4, CAST('checksum_voter4' AS varbinary(max))),
+(42, 4, CAST('checksum_voter4' AS varbinary(max))),
 -- Voter 5
-(5 ,30, 5, CAST('checksum_voter5' AS varbinary(max)));
+(30, 5, CAST('checksum_voter5' AS varbinary(max)));
 GO
 
 INSERT INTO vpv_votingQuestions (
@@ -355,7 +355,6 @@ INSERT INTO vpv_votingQuestions (
 GO
 
 INSERT INTO vpv_Votes (
-    idVote,
     idVotingQuestion,
     creationDate,
     idToken,
@@ -364,9 +363,9 @@ INSERT INTO vpv_Votes (
     checksum,
     idVotingConfig
 ) VALUES
-(1, 1, GETDATE(), 'A1111111-1111-1111-1111-111111111111', 1, 9, CAST('vote1_checksum' AS varbinary(max)), 1),
-(2, 1, GETDATE(), 'B2222222-2222-2222-2222-222222222222', 2, 10, CAST('vote2_checksum' AS varbinary(max)), 2),
-(3, 2, GETDATE(), 'C3333333-3333-3333-3333-333333333333', 3, 11, CAST('vote3_checksum' AS varbinary(max)), 3),
-(4, 2, GETDATE(), 'D4444444-4444-4444-4444-444444444444', 4, 12, CAST('vote4_checksum' AS varbinary(max)), 4),
-(5, 3, GETDATE(), 'E5555555-5555-5555-5555-555555555555', 5, 13, CAST('vote5_checksum' AS varbinary(max)), 5);
+(1, GETDATE(), 'A1111111-1111-1111-1111-111111111111', 1, 9, CAST('vote1_checksum' AS varbinary(max)), 1),
+(1, GETDATE(), 'B2222222-2222-2222-2222-222222222222', 2, 10, CAST('vote2_checksum' AS varbinary(max)), 2),
+(2, GETDATE(), 'C3333333-3333-3333-3333-333333333333', 3, 11, CAST('vote3_checksum' AS varbinary(max)), 3),
+(2, GETDATE(), 'D4444444-4444-4444-4444-444444444444', 4, 12, CAST('vote4_checksum' AS varbinary(max)), 4),
+(3, GETDATE(), 'E5555555-5555-5555-5555-555555555555', 5, 13, CAST('vote5_checksum' AS varbinary(max)), 5);
 GO
