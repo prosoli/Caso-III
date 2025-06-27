@@ -5217,6 +5217,155 @@ def encrypt_with_user_key(user_id: int, key_name: str, password: str, texto_a_en
    
   </details>
 
+### Listar Votos
+
+<details>
+  <summary>Desplegar información</summary>
+
+Este endpoint permite obtener los **últimos 5 votos** emitidos por un usuario, a partir de su número de identificación (cédula, pasaporte o licencia). La función garantiza la seguridad mediante **desencriptado simétrico**, validación de identidad y verificación de múltiples condiciones antes de recuperar los datos.
+
+Flujo general de la función:
+
+1. Se recibe el número de identificación `id_card` en el cuerpo del POST.
+2. Se abre la llave simétrica `llavecedula` para desencriptar datos sensibles.
+3. Se valida que el usuario:
+   - Exista y esté habilitado (`vpv_users`).
+   - Tenga habilitada la autenticación MFA (`vpv_mfa`).
+   - Tenga un documento de identidad verificado (`vpv_identitydocs`).
+   - Esté registrado como votante (`vpv_voter`).
+4. Se consultan los últimos 5 votos de ese usuario (`vpv_votes`) y se desencripta el contenido de la opción seleccionada (`vpv_optionsQuestion`).
+5. Finalmente, se retorna una lista con el título de la propuesta, la fecha y la decisión tomada.
+
+<details>
+  <summary>Ver código del lado de API</summary>
+
+```python
+import azure.functions as func
+import json
+import logging
+import os
+from sqlalchemy import text
+from database import SessionLocal
+
+from Models.users import VpvUser
+from Models.ListarVotos.vpv_mfa import VpvMfa
+from Models.ListarVotos.vpv_identitydocs import VpvIdentityDoc
+from Models.ListarVotos.vpv_Voter import VpvVoter
+from Models.ListarVotos.vpv_Votes import VpvVotes
+
+from Models.Configuracion_Votacion.votingConfing import VotingConfiguration
+from Models.Configuracion_Votacion.proposalVersion import VpvProposalVersions
+
+SYMM_KEY_NAME = "llavecedula"
+SYMM_KEY_PASSWORD = os.getenv("CLAVECEDULA")
+
+def ListarVotos(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info("ListarVotos iniciado...")
+    if req.method != "POST":
+        return func.HttpResponse("Método no permitido. Use POST.", status_code=405)
+
+    session = SessionLocal()
+    try:
+        body = req.get_json()
+        id_card = body.get("id_card")
+        if not id_card:
+            return func.HttpResponse("Falta id_card en el cuerpo de la petición.", status_code=400)
+
+        session.execute(text(
+            f"OPEN SYMMETRIC KEY {SYMM_KEY_NAME} DECRYPTION BY PASSWORD = :pwd"
+        ), {"pwd": SYMM_KEY_PASSWORD})
+
+        row = session.execute(text(f"""
+            SELECT idUser
+            FROM vpv_Users
+            WHERE enable = 1
+              AND CONVERT(nvarchar(50), DECRYPTBYKEY(id_card)) = :idCard
+        """), {"idCard": id_card}).fetchone()
+
+        if not row:
+            return func.HttpResponse(f"No existe usuario activo con cédula {id_card}.", status_code=404)
+        idUsuario = row[0]
+
+        mfa = session.query(VpvMfa).filter_by(userid=idUsuario).first()
+        if not mfa or not mfa.enable:
+            return func.HttpResponse("MFA no habilitado para este usuario.", status_code=403)
+
+        doc = (
+            session.query(VpvIdentityDoc)
+            .filter_by(
+                referenceid="idUser",
+                referencevalue=idUsuario,
+                enable=True,
+                identitystateid=1
+            )
+            .filter(
+                VpvIdentityDoc.name.in_([
+                    "Cédula de identidad",
+                    "Pasaporte",
+                    "Licencia de conducir"
+                ])
+            )
+            .first()
+        )
+        if not doc:
+            return func.HttpResponse(
+                "Usuario no tiene documento verificado (cédula/pasaporte/licencia).",
+                status_code=403
+            )
+
+        voter = session.query(VpvVoter).filter_by(idUser=idUsuario).first()
+        if not voter:
+            return func.HttpResponse("Usuario no registrado como votante.", status_code=404)
+        idVotador = voter.idVoter
+
+        votos = (
+            session.query(VpvVotes)
+            .filter_by(idVoter=idVotador)
+            .order_by(VpvVotes.creationDate.desc())
+            .limit(5)
+            .all()
+        )
+
+        resultado = []
+        for v in votos:
+            config = session.get(VotingConfiguration, v.idVotingConfig)
+            propuesta = session.get(VpvProposalVersions, config.proposalVersionId)
+
+            decision = session.execute(text(f"""
+                SELECT CONVERT(nvarchar(500), DECRYPTBYKEY(value))
+                FROM vpv_optionsQuestion
+                WHERE idOptionQuestion = :opt_id
+            """), {"opt_id": v.idOptionQuestion}).scalar()
+
+            resultado.append({
+                "propuesta": propuesta.tittle,
+                "fecha": v.creationDate.isoformat(),
+                "decision": decision
+            })
+
+        session.execute(text(f"CLOSE SYMMETRIC KEY {SYMM_KEY_NAME};"))
+
+        return func.HttpResponse(
+            json.dumps(resultado, ensure_ascii=False),
+            status_code=200,
+            mimetype="application/json"
+        )
+
+    except Exception:
+        logging.exception("Error interno")
+        session.rollback()
+        try:
+            session.execute(text(f"CLOSE SYMMETRIC KEY {SYMM_KEY_NAME};"))
+        except:
+            pass
+        return func.HttpResponse("Error interno del servidor.", status_code=500)
+
+    finally:
+        session.close()
+```
+</details>
+</details>
+
 ### Configurar Votacion
 <details>
   <summary>Ver Informacion</summary>
