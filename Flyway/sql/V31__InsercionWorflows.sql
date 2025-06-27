@@ -4,28 +4,33 @@ GO
 -----------------------
 -- 1. INSERT STEP TYPES
 -----------------------
+
 DECLARE @stepTypeId1 INT, @stepTypeId2 INT;
 
+-- Insertar primer step type
 INSERT INTO [dbo].[vpv_steptypes] ([type])
-OUTPUT inserted.idStepType INTO @stepTypeId1
 VALUES ('Validacion de Comentario');
+SET @stepTypeId1 = SCOPE_IDENTITY();
 
+-- Insertar segundo step type
 INSERT INTO [dbo].[vpv_steptypes] ([type])
-OUTPUT inserted.idStepType INTO @stepTypeId2
 VALUES ('Validación de documento');
+SET @stepTypeId2 = SCOPE_IDENTITY();
 
----------------------------
+----------------------------
 -- 2. INSERT PROCESS TYPES
----------------------------
+----------------------------
+
 DECLARE @processTypeId INT;
 
 INSERT INTO [dbo].[vpv_processtypes] ([name])
-OUTPUT inserted.idProcessType INTO @processTypeId
 VALUES ('IA');
+SET @processTypeId = SCOPE_IDENTITY();
 
 ---------------------------
 -- 3. INSERT WORKFLOW STEPS
 ---------------------------
+
 INSERT INTO [dbo].[vpv_workflowsteps] (
      [processtypeid],
      [steptypeid],
@@ -40,6 +45,7 @@ VALUES
     (@processTypeId, @stepTypeId2, 1, 'Verificar que el documento cumple con el formato requerido', 0, 1),
     (@processTypeId, @stepTypeId2, 2, 'Verificar que el documento no esté vencido', 0, 1),
     (@processTypeId, @stepTypeId2, 3, 'Verificar que el documento tenga firma digital válida', 0, 1);
+
 
 
 INSERT INTO [dbo].[vpv_api]
