@@ -1276,7 +1276,202 @@ Herramientas utilizadas
 <details>
 <summary>Ver endpoints</summary>
 
+#### Revisar Propuesta
 
+<details>
+  <summary>Desplegar información</summary>
+
+Esta función permite a un usuario autorizado marcar una propuesta como "revisada", siempre y cuando haya superado las validaciones técnicas automáticas. Este endpoint invoca un procedimiento almacenado que verifica el tipo de propuesta, su proceso asociado y que los resultados de análisis no contengan errores antes de actualizar el estado de la propuesta.
+
+La secuencia de pasos es la siguiente:
+
+- Se recibe una solicitud HTTP **POST** con el campo `"proposalId"` en el body.
+- Se valida que el campo exista y sea un entero.
+- Se ejecuta el stored procedure `revisarPropuesta` enviando ese `proposalId`.
+- El procedimiento valida internamente:
+- Que la propuesta exista y tenga tipo definido.
+- Que tenga un proceso asociado (`vpv_process`) válido.
+- Que no existan errores en los resultados (`vpv_workresults`).
+- Que no existan errores en la extracción de información (`vpv_extractedinfos`).
+- Si todo es correcto, se marca la propuesta como revisada (`statusId = 12`) y se registra el usuario que completó el análisis.
+
+<details>
+  <summary>Ver código del lado de API</summary>
+
+```
+python
+import azure.functions as func
+from datetime import datetime
+import json
+import logging
+import os
+import pyodbc
+
+conn_str = os.environ.get("SQL_CONNECTION_STRING")
+
+def revisarPropuesta_sp(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info('Endpoint revisarPropuesta invocado.')
+
+    if req.method != "POST":
+        return func.HttpResponse(
+            "Método no permitido. Usa POST.",
+            status_code=405
+        )
+
+    try:
+        req_body = req.get_json()
+    except ValueError:
+        return func.HttpResponse(
+            "Body no es JSON válido.",
+            status_code=400
+        )
+
+    proposal_id = req_body.get('proposalId')
+    if proposal_id is None:
+        return func.HttpResponse(
+            "El campo 'proposalId' es requerido.",
+            status_code=400
+        )
+    try:
+        proposal_id = int(proposal_id)
+    except:
+        return func.HttpResponse(
+            "El campo 'proposalId' debe ser un entero.",
+            status_code=400
+        )
+
+    try:
+        with pyodbc.connect(conn_str, autocommit=False) as conn:
+            cursor = conn.cursor()
+            cursor.execute("EXEC dbo.revisarPropuesta ?", proposal_id)
+            conn.commit()
+
+            return func.HttpResponse(
+                json.dumps({"message": "Propuesta revisada exitosamente."}),
+                status_code=200,
+                mimetype="application/json"
+            )
+
+    except pyodbc.Error as e:
+        error_text = str(e)
+        logging.error(f"Error al ejecutar revisarPropuesta: {error_text}")
+        return func.HttpResponse(
+            json.dumps({"error": error_text}),
+            status_code=400,
+            mimetype="application/json"
+        )
+```
+
+</details> 
+
+<details>
+
+<summary>Ver código del lado de SQL Server</summary>
+
+```
+CREATE OR ALTER PROCEDURE dbo.revisarPropuesta
+    @proposalId INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+
+    DECLARE
+        @idpropuesta    INT,
+        @TipoPropuesta  NVARCHAR(50),
+        @ProcessId      INT,
+        @Cnt            INT,
+        @ErrorMsg       NVARCHAR(MAX) = N'';
+
+    -- 1) Obtener tipo y nombre de la propuesta
+    SELECT 
+        @idpropuesta   = p.proposalTypeId,
+        @TipoPropuesta = pt.name
+    FROM dbo.vpv_proposals AS p
+    JOIN dbo.vpv_proposalTypes AS pt
+      ON p.proposalTypeId = pt.proposalTypeId
+    WHERE p.proposalId = @proposalId;
+
+    IF @idpropuesta IS NULL
+    BEGIN
+        SET @ErrorMsg = N'Propuesta no encontrada (ID=' 
+                      + CAST(@proposalId AS NVARCHAR(10)) + N')';
+        GOTO ErrorHandler;
+    END
+
+    -- 2) Localizar proceso asociado
+    SELECT TOP 1 
+        @ProcessId = pr.processid
+    FROM dbo.vpv_process AS pr
+    WHERE pr.referencevalue = @idpropuesta
+      AND pr.referenceid    = N'proposalTypeId'
+    ORDER BY pr.[order];
+
+    IF @ProcessId IS NULL
+    BEGIN
+        SET @ErrorMsg = N'Proceso no encontrado para proposalTypeId=' 
+                      + CAST(@idpropuesta AS NVARCHAR(10));
+        GOTO ErrorHandler;
+    END
+
+    -- 3a) Validar que no haya errores en vpv_workresults
+    SELECT @Cnt = COUNT(*)
+    FROM dbo.vpv_workresults AS wr
+    WHERE wr.processid      = @ProcessId
+      AND (
+           wr.error        <> 0
+        OR wr.errorMessage <> N'Nulo'
+        OR wr.performedby  <> N'IA Azure'
+      );
+
+    IF @Cnt > 0
+    BEGIN
+        SET @ErrorMsg = N'Validación fallida en vpv_workresults';
+        GOTO ErrorHandler;
+    END
+
+    -- 3b) Validar que no haya errores en vpv_extractedinfos
+    SELECT @Cnt = COUNT(*)
+    FROM dbo.vpv_extractedinfos AS ei
+    JOIN dbo.vpv_workresults AS wr2
+      ON ei.workresultid = wr2.workresultid
+    WHERE wr2.processid = @ProcessId
+      AND ei.error     <> 0;
+
+    IF @Cnt > 0
+    BEGIN
+        SET @ErrorMsg = N'Validación fallida en vpv_extractedinfos';
+        GOTO ErrorHandler;
+    END
+
+    -- 4) Actualizar estado de la propuesta y trazabilidad
+    UPDATE dbo.vpv_proposals
+    SET 
+        startingDate = GETDATE(),
+        statusId     = 12
+    WHERE proposalId = @proposalId;
+
+    UPDATE dbo.vpv_workresults
+    SET 
+        performedby = SUSER_SNAME(),
+        details     = N'Trazabilidad de análisis técnico completado; fuente de aprobación: IA Azure.'
+    WHERE processid = @ProcessId;
+
+    COMMIT TRANSACTION;
+
+    PRINT N'Propuesta revisada exitosamente.';
+    RETURN 0;
+
+ErrorHandler:
+    ROLLBACK TRANSACTION;
+    RAISERROR(@ErrorMsg, 16, 1);
+    RETURN -1;
+END;
+GO
+```
+</details> 
+
+</details>
 
 #### Crear Actualizar Propuesta
 
