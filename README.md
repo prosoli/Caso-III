@@ -1802,7 +1802,7 @@ GO
 
 ```json
 {
-  "id_card": "239675389"
+  "proposalId": 3
 }
 ```
 
@@ -6020,8 +6020,22 @@ def ListarVotos(req: func.HttpRequest) -> func.HttpResponse:
     finally:
         session.close()
 ```
+
 </details>
 </details>
+
+</details> 
+
+<details>
+
+<summary>JSON</summary>
+
+```json
+{
+  "id_card": "239675389"
+}
+```
+</details> 
 
 ### Configurar Votacion
 <details>
