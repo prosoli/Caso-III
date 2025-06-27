@@ -3564,6 +3564,39 @@ GO
 
 </details>
 
+##### Errores personalizados
+
+<details>
+	<summary>Ver errores personalizados</summary>
+
+| Error                              | Código | Descripción                                                          | Motivo                                                                         |
+| ---------------------------------- | -----: | -------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Usuario no registrado              |  50200 | Usuario no registrado.                                               | Se intentó operar con un usuario que no existe en la base de datos.            |
+| Rol no requerido                   |  50201 | El usuario %d no tiene el rol requerido: Proponente.                 | El usuario autenticado no cuenta con el rol ‘Proponente’ necesario.            |
+| Error general del SP               |  50202 | vpvSP\_CrearActualizarPropuesta falló: %s (Número %d).               | Fallo interno en el procedimiento al crear o actualizar la propuesta.          |
+| Éxito al hacer UPSERT de propuesta |  50220 | UpsertProposalWithVersion OK: proposalId=%d, versionId=%d.           | Se completó correctamente la inserción o actualización de la propuesta.        |
+| Error en UPSERT de propuesta       |  50221 | UpsertProposalWithVersion ERROR: %s (CustomError=%d).                | Ocurrió un error al insertar o actualizar la propuesta con versión.            |
+| Success al insertar configuración  |  50240 | InsertVotingConfig completed successfully. Generated ID: %d.         | La configuración de votación se guardó correctamente y se generó un nuevo ID.  |
+| Error de permisos                  |  50241 | Permission denied: missing required permission "%s" in context "%s". | El usuario carece del permiso requerido en el contexto especificado.           |
+| Error en insert de configuración   |  50242 | Error in InsertVotingConfig: %s (Internal Code: %d).                 | Se produjo un fallo interno al intentar guardar la configuración de votación.  |
+| Población objetivo inválida        |  50262 | Target population "%s" is not enabled or does not exist.             | La población objetivo indicada no está registrada o no está habilitada.        |
+| Tipo de identidad inválido         |  50263 | Invalid identity type: %s                                            | Se proporcionó un tipo de documento de identidad no reconocido.                |
+| Estado de identidad inválido       |  50264 | Invalid identity status: %s                                          | Se suministró un estado de identidad que no cumple con los valores permitidos. |
+| Formato inválido                   |  50265 | Invalid format: %s.                                                  | El formato de uno de los datos ingresados no coincide con el esperado.         |
+| Tipo de documento inválido         |  50266 | Invalid document type: %s.                                           | El tipo de documento especificado no forma parte de los tipos válidos.         |
+| Estado de documento inválido       |  50267 | Invalid document status: %s.                                         | El estado asignado al documento no corresponde a los estados definidos.        |
+| Estado de votación no registrado   |  50268 | The voting status "%s" is not registered in vpv\_statusVoting.       | No existe ningún estado de votación con el nombre proporcionado.               |
+| Tipo de votación no registrado     |  50269 | The voting type "%s" is not registered in vpv\_votingTypes.          | El tipo de votación indicado no está definido en el catálogo correspondiente.  |
+| Tipo de recordatorio no registrado |  50270 | The reminder type "%s" is not registered in vpv\_reminderTypes.      | El tipo de aviso o recordatorio no está registrado en el sistema.              |
+| Tipo de cierre no registrado       |  50271 | The closure type "%s" is not registered in vpv\_ClosureTypes.        | No se encontró el tipo de cierre con la clave indicada.                        |
+| Razón de votación no registrada    |  50272 | The voting reason "%s" is not registered in vpv\_votingReasons.      | La motivación o razón de votación indicada no existe en el catálogo.           |
+| Agenda no registrada               |  50273 | The schedule "%s" is not registered in vpv\_schedules.               | No hay ninguna agenda con ese identificador en la tabla de horarios.           |
+| Estado de proceso no registrado    |  50274 | The process status "%s" is not registered in vpv\_processStatus.     | Se utilizó un estado de proceso no definido en el sistema.                     |
+| Tipo de propuesta no registrado    |  50275 | The proposal type "%s" is not registered in vpv\_proposalTypes.      | El tipo de propuesta proporcionado no figura en el catálogo de tipos.          |
+
+ 
+</details>
+
  
 </details>
 
