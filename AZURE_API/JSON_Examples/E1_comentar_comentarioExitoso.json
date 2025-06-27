@@ -1,0 +1,25 @@
+{
+    "idCard":"258503207",
+    "ProposalVersion": "Proyecto de reciclaje - Expansión regional", 
+    "Comment": [
+        {
+            "comment": "Haciendo la revision para la propuesta nos hemos dado cuenta que se tiene que adjuntar una certificaion de salud establecida por el consejo, por esto adjuntamos la plantilla que debe seguir para entregarla.  De no entregarla en 1 mes su propuesta queda archivada por el consejo ", 
+            "status": "Pendiente de revisión",
+            "creationDate": "2025-06-25T08:00:00Z"
+        }
+    ],
+    "Document": [
+    
+        {
+            "identitydoc": "CSS-008",  
+            "format": "PDF",  
+            "docstype": "Salud",  
+            "docstate": "En Revisión",  
+            "filename": "Certificación de Salud.pdf",  
+            "date": "2025-07-16T12:00:00Z",  
+            "startdate": "2025-07-16T12:00:00Z",  
+            "nextcheckdate": "2025-07-16T12:00:00Z",  
+            "semantic_category": "Certificación de Salud en PDF"  
+        }
+    ]
+}
