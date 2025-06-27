@@ -7414,6 +7414,6 @@ def insertarLog(req_body, session, error_msg):
 
 
 
-
+</details>          
 
 
