@@ -7,8 +7,8 @@
 -- Fecha: 06/10/2025
 -- Descripcion: Registra todo el flujo de entrada/salida de dinero para el usuario y propuesta 
 --				en especifico (transacciones y balances)
--- @userId: Usuario al cual recibir· una transacciÛn por dividendos (genera transacciÛn y modifica balance)
--- @crowdfoundingProposalId:  Propuesta de la cual salen los montos de los dividendos (genera transacciÛn y modifica balance)
+-- @userId: Usuario al cual recibir√° una transacci√≥n por dividendos (genera transacci√≥n y modifica balance)
+-- @crowdfoundingProposalId:  Propuesta de la cual salen los montos de los dividendos (genera transacci√≥n y modifica balance)
 -- @amount:  Monto total del dividendo
 -----------------------------------------------------------
 CREATE OR ALTER PROCEDURE[dbo].[vpvSP_RealizarTransacciones]
@@ -38,7 +38,7 @@ BEGIN
 
 	--Asigno valores a ciertas variables 
 	SELECT @subtype = transactionSubTypeId FROM vpv_transSubTypes WHERE name = 'Pago de propuesta';
-	SELECT @transType = transTypeId FROM vpv_transTypes WHERE name = 'Transfer'; -- Indica el transactionType si se hace de parte de la propuesta serÌa una transferencia, en este caso de dividendos
+	SELECT @transType = transTypeId FROM vpv_transTypes WHERE name = 'Transfer'; -- Indica el transactionType si se hace de parte de la propuesta ser√≠a una transferencia, en este caso de dividendos
 	SELECT @currency = currencyId FROM vpv_currencies WHERE acronym = @currency;	
 	SELECT @exchage =  echangeRateId FROM vpv_exchangeRates WHERE currencyId = @currency AND currentExchange = '1';
 	SELECT @found = foundId FROM vpv_founds WHERE name = 'Dinero';
@@ -81,7 +81,7 @@ BEGIN
 		VALUES
            (@balanceProp,@crowdfoundingProposalId, @date, @checksum);
 
-		--Se realiza la transacciÛn en sÌ, igaul simulando dinero de salida
+		--Se realiza la transacci√≥n en s√≠, igaul simulando dinero de salida
 		INSERT INTO [dbo].[vpv_transactions]
            ([amount],[description],[date],[postTime],[refNumber],[checksum],[convertedAmount],[paymentId],[transactionSubTypeId],
            [transTypeId],[currencyId],[exchangeRateId],[balanceId],[idUser])
@@ -96,7 +96,7 @@ BEGIN
 		VALUES
 			(@crowdfoundingProposalId, NULL, @transactionProp, @date, @checksum);
 
-		--Se inserta la simulaciÛn de ingreso de dinero hacia el usuario
+		--Se inserta la simulaci√≥n de ingreso de dinero hacia el usuario
 		INSERT INTO [dbo].[vpv_balances]
            ([balance],[lastbalance],[lastUpdate],[checksum],[foundId],[freezeAmount])
 		VALUES
@@ -132,7 +132,7 @@ BEGIN
            ,[chechsum],[logSeverityId],[logSourceId],[logTypeId])
 		VALUES(
 		   CONCAT('Pago de dividendos de la propuesta ', @crowdfoundingProposalId,' al usuario ', @userId, ' Por un monto de ',
-		   @amount,' Realizado el ', @date, ' por la transacciÛn numero ', @transactionUser), CONCAT('Computer ', @random),
+		   @amount,' Realizado el ', @date, ' por la transacci√≥n numero ', @transactionUser), CONCAT('Computer ', @random),
 		   CONCAT('User', @userId), 'T1', CONCAT('Propuesta ', @crowdfoundingProposalId), CONCAT('User ',@userId),
 		   CONCAT('Monto ', @amount),CONCAT('fecha ', @date), @checksum,
 		   (SELECT logSeverityId FROM vpv_logSeverity WHERE name = 'High'),
@@ -171,7 +171,7 @@ GO
 -- Descripcion: Verifica los inversionistas de cada propuesta, monto invertido
 --				y establece el monto a repartir segun inversion y utilidades disponibles
 -- @crowdfoundingProposalId: Identificador de la propuesta para revisar sus inversionistas
--- @dividendos: Monto de utilidades disponibles segun la propuesta especÌfica
+-- @dividendos: Monto de utilidades disponibles segun la propuesta espec√≠fica
 -----------------------------------------------------------
 CREATE OR ALTER PROCEDURE[dbo].[vpvSP_VerificarAgreements]
 	--Parametros externos
@@ -287,7 +287,7 @@ GO
 -----------------------------------------------------------
 -- Autor: Priscilla Romero Barquero
 -- Fecha: 06/10/2025
--- Descripcion: Verifica que la propuesta est· en ejecuciÛn, con fiscalizaciones aprobadas 
+-- Descripcion: Verifica que la propuesta est√° en ejecuci√≥n, con fiscalizaciones aprobadas 
 --				y que existen fondos disponibles para repartir utilidades
 -- @Proposalname: Nombre de la propuesta de la cual se quiere repartir los dividendos
 -----------------------------------------------------------
@@ -317,7 +317,7 @@ BEGIN
 	SELECT @proposalId = proposalId FROM vpv_proposals WHERE tittle = @Proposalname and enable = 1;
     IF @proposalId IS NULL
     BEGIN
-        RAISERROR('No se encontrÛ una propuesta habilitada con ese nombre.', 16, 1);
+        RAISERROR('No se encontr√≥ una propuesta habilitada con ese nombre.', 16, 1);
         RETURN;
     END
 
@@ -339,7 +339,7 @@ BEGIN
 
     IF @dividendos IS NULL
     BEGIN
-        RAISERROR('No se encontrÛ un reporte aprobado con dividendos disponibles para esta propuesta.', 16, 1);
+        RAISERROR('No se encontr√≥ un reporte aprobado con dividendos disponibles para esta propuesta.', 16, 1);
         RETURN;
     END
 
@@ -354,7 +354,7 @@ BEGIN
 
 	IF @idUsuarioEjecuta IS NULL
 	BEGIN
-		RAISERROR('El usuario no est· registrado o no est· habilitado.', 16, 1);
+		RAISERROR('El usuario no est√° registrado o no est√° habilitado.', 16, 1);
 		RETURN;
 	END
 
@@ -368,15 +368,15 @@ BEGIN
 	--Si retorna 0, en valido como null por lo tanto no hay permisos de inversion
 	IF @hasRole IS NULL
 	BEGIN
-		RAISERROR('El usuario no posee el rol necesario para realizar esta acciÛn.', 16, 1);
+		RAISERROR('El usuario no posee el rol necesario para realizar esta acci√≥n.', 16, 1);
 		RETURN;
 	END
 
 
-	--Verificar que la propuesta est· ejecutandose
+	--Verificar que la propuesta est√° ejecutandose
 	IF NOT EXISTS (SELECT 1 FROM vpv_proposals WHERE proposalId = @proposalId AND statusId = @propstatusId)	
     BEGIN
-        RAISERROR('La propuesta no est· en estado "En proceso".', 16, 1);
+        RAISERROR('La propuesta no est√° en estado "En proceso".', 16, 1);
         RETURN;
     END
 
@@ -438,8 +438,8 @@ RETURN 0
 GO
 
 /*
--- Par·metros de prueba
-DECLARE @Proposalname nvarchar(100) = 'Plataforma digital de salud p˙blica';  
+-- Par√°metros de prueba
+DECLARE @Proposalname nvarchar(100) = 'Plataforma digital de salud p√∫blica';  
 DECLARE @idCard nvarchar(100) = '258503207';  
 DECLARE @currency nvarchar(100) = 'CRC'; 
 
