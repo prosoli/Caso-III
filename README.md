@@ -5888,21 +5888,22 @@ Flujo general de la función:
 import azure.functions as func
 import json
 import logging
-import os
 from sqlalchemy import text
 from database import SessionLocal
-
+import os #utilizado para variables de entorno
 from Models.users import VpvUser
 from Models.ListarVotos.vpv_mfa import VpvMfa
 from Models.ListarVotos.vpv_identitydocs import VpvIdentityDoc
 from Models.ListarVotos.vpv_Voter import VpvVoter
 from Models.ListarVotos.vpv_Votes import VpvVotes
+from Models.ListarVotos.vpv_optionsQuestion import VpvOptionsQuestion
 
 from Models.Configuracion_Votacion.votingConfing import VotingConfiguration
 from Models.Configuracion_Votacion.proposalVersion import VpvProposalVersions
 
-SYMM_KEY_NAME = "llavecedula"
-SYMM_KEY_PASSWORD = os.getenv("CLAVECEDULA")
+
+# Clave para desencriptar (asegúrate de cargarla con dotenv como en tu ejemplo)
+clave = os.getenv("CLAVECEDULA")
 
 def ListarVotos(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("ListarVotos iniciado...")
@@ -5916,25 +5917,35 @@ def ListarVotos(req: func.HttpRequest) -> func.HttpResponse:
         if not id_card:
             return func.HttpResponse("Falta id_card en el cuerpo de la petición.", status_code=400)
 
-        session.execute(text(
-            f"OPEN SYMMETRIC KEY {SYMM_KEY_NAME} DECRYPTION BY PASSWORD = :pwd"
-        ), {"pwd": SYMM_KEY_PASSWORD})
+        # —————————————————————————————
+        # 1) Abrir llave y desencriptar para buscar idUsuario
+        # —————————————————————————————
+        sql = f"OPEN SYMMETRIC KEY llavecedula DECRYPTION BY PASSWORD = '{clave}'"
+        session.execute(text(sql))
 
-        row = session.execute(text(f"""
+        result = session.execute(text("""
             SELECT idUser
             FROM vpv_Users
             WHERE enable = 1
               AND CONVERT(nvarchar(50), DECRYPTBYKEY(id_card)) = :idCard
-        """), {"idCard": id_card}).fetchone()
+        """), {"idCard": id_card})
+        row = result.fetchone()
+
+        # Cerrar llave inmediatamente tras la consulta
+        session.execute(text("CLOSE SYMMETRIC KEY llavecedula;"))
 
         if not row:
-            return func.HttpResponse(f"No existe usuario activo con cédula {id_card}.", status_code=404)
+            return func.HttpResponse(
+                f"No existe usuario activo con cédula {id_card}.", status_code=404
+            )
         idUsuario = row[0]
 
+        # 2) Validar MFA habilitado
         mfa = session.query(VpvMfa).filter_by(userid=idUsuario).first()
         if not mfa or not mfa.enable:
             return func.HttpResponse("MFA no habilitado para este usuario.", status_code=403)
 
+        # 3) Validar documento de identidad válido
         doc = (
             session.query(VpvIdentityDoc)
             .filter_by(
@@ -5943,13 +5954,7 @@ def ListarVotos(req: func.HttpRequest) -> func.HttpResponse:
                 enable=True,
                 identitystateid=1
             )
-            .filter(
-                VpvIdentityDoc.name.in_([
-                    "Cédula de identidad",
-                    "Pasaporte",
-                    "Licencia de conducir"
-                ])
-            )
+            .filter(VpvIdentityDoc.name.in_(["Cédula de identidad", "Pasaporte", "Licencia de conducir"]))
             .first()
         )
         if not doc:
@@ -5958,11 +5963,13 @@ def ListarVotos(req: func.HttpRequest) -> func.HttpResponse:
                 status_code=403
             )
 
+        # 4) Obtener el idVotador
         voter = session.query(VpvVoter).filter_by(idUser=idUsuario).first()
         if not voter:
             return func.HttpResponse("Usuario no registrado como votante.", status_code=404)
         idVotador = voter.idVoter
 
+        # 5) Traer los últimos 5 votos
         votos = (
             session.query(VpvVotes)
             .filter_by(idVoter=idVotador)
@@ -5970,41 +5977,33 @@ def ListarVotos(req: func.HttpRequest) -> func.HttpResponse:
             .limit(5)
             .all()
         )
-
         resultado = []
+        print("votoss")
+        logging.info(str(votos))
+        logging.info("votoss")
         for v in votos:
-            config = session.get(VotingConfiguration, v.idVotingConfig)
-            propuesta = session.get(VpvProposalVersions, config.proposalVersionId)
+            config = session.query(VotingConfiguration).get(v.idVotingConfig)
+            propuesta = session.query(VpvProposalVersions).get(config.proposalVersionId)
+            opcion = session.query(VpvOptionsQuestion.value).filter_by(idOptionQuestion=v.idOptionQuestion).first()
 
-            decision = session.execute(text(f"""
-                SELECT CONVERT(nvarchar(500), DECRYPTBYKEY(value))
-                FROM vpv_optionsQuestion
-                WHERE idOptionQuestion = :opt_id
-            """), {"opt_id": v.idOptionQuestion}).scalar()
 
             resultado.append({
-                "propuesta": propuesta.tittle,
-                "fecha": v.creationDate.isoformat(),
-                "decision": decision
+                "propuesta": propuesta.tittle if propuesta else None,
+                "fecha": v.creationDate.isoformat() if v.creationDate else None,
+                "decision": opcion[0] if opcion else None
             })
 
-        session.execute(text(f"CLOSE SYMMETRIC KEY {SYMM_KEY_NAME};"))
-
         return func.HttpResponse(
-            json.dumps(resultado, ensure_ascii=False),
+            json.dumps(resultado),
             status_code=200,
-            mimetype="application/json"
+            headers={"Content-Type": "application/json"}
         )
 
-    except Exception:
+
+    except Exception as e:
         logging.exception("Error interno")
         session.rollback()
-        try:
-            session.execute(text(f"CLOSE SYMMETRIC KEY {SYMM_KEY_NAME};"))
-        except:
-            pass
         return func.HttpResponse("Error interno del servidor.", status_code=500)
-
     finally:
         session.close()
 ```
