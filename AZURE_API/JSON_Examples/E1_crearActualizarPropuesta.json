@@ -1,0 +1,80 @@
+{
+  "user": "326102758",
+  "proposal": {
+    "tittle": "Propuesta Educativa",
+    "description": "Ampliar cobertura de educación digital",
+    "content": "Primera versión detallada",
+    "schedule": "Cada semana",
+    "status": "Pendiente de revisión",
+    "budget": 5000.75,
+    "proposalType": "Propuesta educativa",
+    "relacion": "Contribuye al ODS 4",
+    "startingDate": "2025-07-01"
+  },
+  "votingConfig": {
+    "openDate": "2025-06-15T08:00:00",
+    "closeDate": "2025-06-20T18:00:00",
+    "StatusVoting": "Preparado",
+    "VotingType": "Multiple",
+    "description": "Prueba SP VotingConfig",
+    "weight": 1,
+    "ReminderType": "Email",
+    "ClosureTypes": "Cierre hasta la fecha",
+    "VotingReasons": "Aval de propuesta"
+  },
+  "targetPopulations": {
+    "targetPopulations": [
+      { "name": "Jóvenes Adultos", "weight": 1.00 },
+      { "name": "Adultos Mayores", "weight": 1.50 },
+      { "name": "Personas con Discapacidad", "weight": 0.75 }
+    ]
+  },  
+  "documents": [
+    {
+      "identitytype": "Poder Generalísimo",
+      "identitystate": "En espera",
+      "name": "Pasaporte",
+      "field1": "XX123456",
+      "field2": "N/A",
+      "temporary": 0,
+      "expirationdate": "2030-12-31T00:00:00",
+      "referenceVal": 500,
+      "referenceId": "PPT-500",
+      "format": "PDF",
+      "docstype": "Legal",
+      "docstate": "Pendiente",
+      "archive": "UEsDBBQACAgI...==",
+      "filename": "pasaporte.pdf",
+      "date": "2025-06-08T09:00:00",
+      "startdate": "2025-06-01T00:00:00",
+      "nextcheckdate": "2026-06-01T00:00:00",
+      "semantic_category": "ID",
+      "docEnable": 1,
+      "fileEnable": 1,
+      "relacion": "Documento oficial"
+    },
+    {
+      "identitytype": "Cert. de Propiedad",
+      "identitystate": "En espera",
+      "name": "Pasaporte3",
+      "field1": "XX123457",
+      "field2": "N/A",
+      "temporary": 0,
+      "expirationdate": "2030-12-31T00:00:00",
+      "referenceVal": 501,
+      "referenceId": "PPT-501",
+      "format": "PDF",
+      "docstype": "Propiedad",
+      "docstate": "Pendiente",
+      "archive": "UEsDBBQACAgI...==",
+      "filename": "pasaporte3.pdf",
+      "date": "2025-06-08T10:00:00",
+      "startdate": "2025-06-02T00:00:00",
+      "nextcheckdate": "2026-06-02T00:00:00",
+      "semantic_category": "ID",
+      "docEnable": 1,
+      "fileEnable": 1,
+      "relacion": "Documento oficial 3"
+    }
+  ]
+}
