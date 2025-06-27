@@ -1118,6 +1118,18 @@ INSERT INTO [dbo].[vpv_statusVoting]
 <details>
   <summary>Desplegar información</summary>
 
+### Endpoints
+
+| Endpoint                 | URL                                            | Método | Descripción                                                        |
+|--------------------------|------------------------------------------------|--------|------------------------------------------------------------------|
+| comentar                 | http://localhost:7071/api/comentar              | POST   | Endpoint para enviar o gestionar comentarios.                    |
+| configurarVotacionORM    | http://localhost:7071/api/configurarVotacionORM | POST   | Configura la votación usando ORM.                                |
+| crearActualizarPropuesta | http://localhost:7071/api/crearActualizarPropuesta | POST   | Crea o actualiza una propuesta.                                  |
+| invertir                 | http://localhost:7071/api/invertir              | POST   | Realiza una operación de inversión o inversión lógica.          |
+| ListarVotos              | http://localhost:7071/api/listarVotos           | POST   | Devuelve una lista de votos registrados.                         |
+| revisarPropuesta_sp      | http://localhost:7071/api/revisarPropuesta_sp   | POST   | Revisa una propuesta, posiblemente con procedimiento almacenado.|
+| votar                    | http://localhost:7071/api/votar                  | POST   | Permite registrar un voto.                                       |
+
   Implementación del API Serverless para el Sistema de Voto Electrónico y Crowdfunding
 
 Introducción
@@ -6822,7 +6834,11 @@ Este flujo garantiza un acceso controlado y seguro al dashboard, promoviendo la 
 ### Inicio de Sesión
   <details>
   <summary>Desplegar información</summary>
-    en construccion
+Para la implemenatcion de Inicio de sesión se hace de dos formas pero ambas por RLS (Row Level Security).
+La primera de ella se hace por medio de dos tablas donde se guardan los usuarios que pueden tener accesso al dashboard a la hora de ingresas cuando el enlace es compartido con el usuario.  Se utiliza También un rol que recibe el nombre de usuario que viene desde el RLS para que pueda ser verificado con los usuarios que ya cuentan con acceso segun las tablas registradas.  Esta configuracion se utiliza para que el usuario puede ver o no ver por completo el dashboard
+
+Despues la segunda configuración consiste en hacer roles como más individuales segun la informacion que se quiee que el usuario vea.  En este caso se utiliza los roles y se filtran ciertos elementos del dashboard en sí como que no pueda ver ciertas propuestas o ciertas ciudades, etc. Este tambien está incorporado al RLS porque de esta manera al crear un rol se puede agregar personas que puedan o no puedan acceder a este rol 
+
   </details>
 
 ## Dashboard principal
