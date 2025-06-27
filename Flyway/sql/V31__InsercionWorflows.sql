@@ -7,7 +7,7 @@
 INSERT INTO [dbo].[vpv_steptypes] ([type])
 VALUES 
     ('Validacion de Comentario'),
-    ('ValidaciÛn de documento');
+    ('Validaci√≥n de documento');
 
 
 -----------------
@@ -37,8 +37,8 @@ VALUES
     (1, 1, 2, 'Verificar presencia de encabezado', 0, 1),
     (1, 1, 3, 'Verificar firma o pie de autor', 0, 1),
 	(1, 2, 1, 'Verificar que el documento cumple con el formato requerido', 0, 1),
-    (1, 2, 2, 'Verificar que el documento no estÈ vencido', 0, 1),
-    (1, 2, 3, 'Verificar que el documento tenga firma digital v·lida', 0, 1);
+    (1, 2, 2, 'Verificar que el documento no est√© vencido', 0, 1),
+    (1, 2, 3, 'Verificar que el documento tenga firma digital v√°lida', 0, 1);
 
 INSERT INTO [dbo].[vpv_api]
        ([name],
@@ -48,7 +48,7 @@ INSERT INTO [dbo].[vpv_api]
         [updateDate])
 VALUES
        ('api-workflow-ia',
-        'API encargada de simular la validaciÛn autom·tica de estructura y documentaciÛn de comentarios mediante flujos de trabajo (workflows) configurables.',
+        'API encargada de simular la validaci√≥n autom√°tica de estructura y documentaci√≥n de comentarios mediante flujos de trabajo (workflows) configurables.',
         'https://api.puravidabd.local/workflow/validate',
         GETDATE(),
         GETDATE());
@@ -69,14 +69,8 @@ ALTER COLUMN description VARCHAR(500);
 
 
 
--- Cambiar nombre de la columna 'extraInformation' a 'relation'
-EXEC sp_rename 
-    @objname = 'dbo.vpv_proposalComments.extraInformation', 
-    @newname = 'relacion', 
-    @objtype = 'COLUMN';
-GO
 
 -- Cambio para que el comentar fucione el error 
-UPDATE vpv_proposalVersions SET commentsAllowed = 0 WHERE tittle = 'App salud rural - IntegraciÛn con expediente digital'
+UPDATE vpv_proposalVersions SET commentsAllowed = 0 WHERE tittle = 'App salud rural - Integraci√≥n con expediente digital'
 
 
