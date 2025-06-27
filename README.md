@@ -1793,6 +1793,19 @@ ErrorHandler:
 END;
 GO
 ```
+
+</details> 
+
+<details>
+
+<summary>JSON</summary>
+
+```json
+{
+  "id_card": "239675389"
+}
+```
+
 </details> 
 
 </details>
