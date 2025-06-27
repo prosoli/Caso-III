@@ -3140,7 +3140,7 @@ BEGIN
         END
 
 
-
+        -- hacemos el insert a identity docs para identificar los documentos, necesario para insert en docs
         INSERT INTO dbo.vpv_identitydocs
             (
             identitytypeid, identitystateid, [name], field1, field2,
@@ -3154,6 +3154,7 @@ BEGIN
                 @referenceVal, @referenceId
             );
         SET @identitydocsid = SCOPE_IDENTITY();
+        -- log de exito
         INSERT INTO dbo.vpv_logs (description, computer, username, trace, referenceId1, referenceId2, value1, value2, chechsum, logSeverityId, logSourceId, logTypeId) VALUES
           ('Nuevo identity docs completado' + @idName, @@SERVERNAME, HOST_NAME(),
            'vpvSP_InsertProposalDocuments', CAST(@idName AS VARCHAR(10)), NULL,
@@ -3216,6 +3217,7 @@ BEGIN
         SET @docEnable         = ISNULL(TRY_CAST(JSON_VALUE(@item,'$.docEnable') AS BIT),1);
         SET @docChecksum       = HASHBYTES('SHA2_256', @filename + CONVERT(VARCHAR(30),@docDate,126));
 
+        -- aqui se suben los documentos de la propuesta
         INSERT INTO dbo.vpv_docs
             (
             identitydocsid, formatid, docstypeid, docstateid,
@@ -3242,6 +3244,7 @@ BEGIN
         SET @relacion     = JSON_VALUE(@item,'$.relacion');
         SET @fileChecksum = HASHBYTES('SHA2_256', CONCAT(@proposalId,'_',@docid));
 
+        -- y aqui se relacionan los documenos y la propuesta
         INSERT INTO dbo.vpv_FilesPerProposal
             (
             proposalId, docid, [enable], deleted,
@@ -3259,6 +3262,64 @@ BEGIN
            (SELECT logSeverityId FROM dbo.vpv_logSeverity WHERE [name]='Informational'),
            (SELECT logSourceId   FROM dbo.vpv_logsSources WHERE [name]='Database'),
            (SELECT logTypeId     FROM dbo.vpv_logTypes   WHERE [name]='Audit'));
+
+            DECLARE
+                @procName     NVARCHAR(100),
+                @procDesc     NVARCHAR(100),
+                @randTypeId   INT,
+                @randParamId  INT,
+                @randMethodId INT = 1;  -- asumido
+
+            SELECT TOP 1 @randTypeId  = processtypeid FROM dbo.vpv_processtypes;
+            SELECT TOP 1 @randParamId = parameterid   FROM dbo.vpv_parameters WHERE enable = 1;
+
+            SET @procName = 'Doc_' + CAST(@docid AS NVARCHAR(10));
+            SET @procDesc = 'AutoProceso doc ' + CAST(@docid AS NVARCHAR(10));
+
+            -- se intenta realizar el insert en process, esto para que la ia lo procese despues, se inserta una refencia del id del documentos
+            BEGIN TRY
+                INSERT INTO dbo.vpv_process
+                    (processtypeid, referencevalue, referenceid, parameterid,
+                     processmethodid, [name], [description], enable, fecha, [order])
+                VALUES
+                    (@randTypeId,
+                     @docid,
+                     'docid',
+                     @randParamId,
+                     @randMethodId,
+                     @procName,
+                     @procDesc,
+                     1,
+                     GETDATE(),
+                     0);
+            END TRY
+            BEGIN CATCH
+                -- Sólo loguear, no abortar
+                DECLARE
+                    @E_Num  INT  = ERROR_NUMBER(),
+                    @E_Sev  INT  = ERROR_SEVERITY(),
+                    @E_Sta  INT  = ERROR_STATE(),
+                    @E_Msg  NVARCHAR(4000)= ERROR_MESSAGE();
+
+                -- si falla se hace un insert a logs
+                INSERT INTO dbo.vpv_logs
+                    (description, computer, username, trace, referenceId1, referenceId2,
+                     value1, value2, chechsum, logSeverityId, logSourceId, logTypeId)
+                VALUES
+                    (
+                      'Fallo al crear proceso: ' + @E_Msg,
+                      @@SERVERNAME,
+                      HOST_NAME(),
+                      'vpvSP_InsertProposalDocuments:vpv_process',
+                      CAST(@docid AS NVARCHAR(10)), NULL,
+                      NULL, NULL, 0x0,
+                      (SELECT logSeverityId FROM dbo.vpv_logSeverity WHERE [name]='Warning'),
+                      (SELECT logSourceId   FROM dbo.vpv_logsSources WHERE [name]='Application'),
+                      (SELECT logTypeId     FROM dbo.vpv_logTypes   WHERE [name]='Warning')
+                    );
+                -- continuar con siguiente documento
+            END CATCH;
+
 
         FETCH NEXT FROM doc_cursor INTO @item;
     END
@@ -3282,7 +3343,179 @@ BEGIN
     END CATCH
 END;
 GO
+
 ```
+</details>
+
+<details>
+	<summary>Ver JSONs de ejemplo</summary>
+
+ ```json
+
+{
+  "user": "326102758",
+  "proposal": {
+    "tittle": "Programa Conecta Saber",
+    "description": "Impulsar el acceso equitativo a herramientas tecnológicas en zonas rurales",
+    "content": "Borrador técnico preliminar",
+    "schedule": "Cada semana",
+    "status": "Pendiente de revisión",
+    "budget": 5000.75,
+    "proposalType": "Propuesta educativa",
+    "relacion": "Contribuye al ODS 4",
+    "startingDate": "2025-07-01"
+  },
+  "votingConfig": {
+    "openDate": "2025-06-15T08:00:00",
+    "closeDate": "2025-06-20T18:00:00",
+    "StatusVoting": "Preparado",
+    "VotingType": "Multiple",
+    "description": "Simulación de parámetros de votación",
+    "weight": 1,
+    "ReminderType": "Email",
+    "ClosureTypes": "Cierre hasta la fecha",
+    "VotingReasons": "Aval de propuesta"
+  },
+  "targetPopulations": {
+    "targetPopulations": [
+      { "name": "Jóvenes Adultos", "weight": 1.00 },
+      { "name": "Adultos Mayores", "weight": 1.50 },
+      { "name": "Personas con Discapacidad", "weight": 0.75 }
+    ]
+  },  
+  "documents": [
+    {
+      "identitytype": "Poder Generalísimo",
+      "identitystate": "En espera",
+      "name": "Documento Identidad Digital",
+      "field1": "ZX908765",
+      "field2": "N/A",
+      "temporary": 0,
+      "expirationdate": "2030-12-31T00:00:00",
+      "referenceVal": 500,
+      "referenceId": "PPT-500",
+      "format": "PDF",
+      "docstype": "Legal",
+      "docstate": "Pendiente",
+      "archive": "UEsDBBQACAgI...==",
+      "filename": "poder-generalisimo.pdf",
+      "date": "2025-06-08T09:00:00",
+      "startdate": "2025-06-01T00:00:00",
+      "nextcheckdate": "2026-06-01T00:00:00",
+      "semantic_category": "docuemnto que otorga algun poder, es legal",
+      "docEnable": 1,
+      "fileEnable": 1,
+      "relacion": "Documento oficial"
+    },
+    {
+      "identitytype": "Cert. de Propiedad",
+      "identitystate": "En espera",
+      "name": "Certificado de propiedad sobre xx",
+      "field1": "DP-457",
+      "field2": "N/A",
+      "temporary": 0,
+      "expirationdate": "2030-12-31T00:00:00",
+      "referenceVal": 501,
+      "referenceId": "PPT-501",
+      "format": "PDF",
+      "docstype": "Propiedad",
+      "docstate": "Pendiente",
+      "archive": "UEsDdsfhgsadfghjgBBQACAgI...==",
+      "filename": "titulo de propiedad.pdf",
+      "date": "2025-06-08T10:00:00",
+      "startdate": "2025-06-02T00:00:00",
+      "nextcheckdate": "2026-06-02T00:00:00",
+      "semantic_category": "documento que demuestra pocesion",
+      "docEnable": 1,
+      "fileEnable": 1,
+      "relacion": "Documento oficial 3"
+    }
+  ]
+}
+
+{
+  "user": "326102758",
+  "proposal": {
+    "tittle": "Propuesta Educativa",
+    "description": "Ampliar cobertura de educación digital",
+    "content": "Primera versión detallada",
+    "schedule": "Cada semana",
+    "status": "Pendiente de revisión",
+    "budget": 5000.75,
+    "proposalType": "Propuesta educativa",
+    "relacion": "Contribuye al ODS 4",
+    "startingDate": "2025-07-01"
+  },
+  "votingConfig": {
+    "openDate": "2025-06-15T08:00:00",
+    "closeDate": "2025-06-20T18:00:00",
+    "StatusVoting": "Preparado",
+    "VotingType": "Multiple",
+    "description": "Prueba SP VotingConfig",
+    "weight": 1,
+    "ReminderType": "Email",
+    "ClosureTypes": "Cierre hasta la fecha",
+    "VotingReasons": "Aval de propuesta"
+  },
+  "targetPopulations": {
+    "targetPopulations": [
+      { "name": "Jóvenes Adultos", "weight": 1.00 },
+      { "name": "Adultos Mayores", "weight": 1.50 },
+      { "name": "Personas con Discapacidad", "weight": 0.75 }
+    ]
+  },  
+  "documents": [
+    {
+      "identitytype": "Poder Generalísimo",
+      "identitystate": "En espera",
+      "name": "Documento de poder Generalísimo",
+      "field1": "DP-432334",
+      "field2": "N/A",
+      "temporary": 0,
+      "expirationdate": "2030-12-31T00:00:00",
+      "referenceVal": 500,
+      "referenceId": "PPT-500",
+      "format": "PDF",
+      "docstype": "Legal",
+      "docstate": "Pendiente",
+      "archive": "UEsDBBQACAgI...==",
+      "filename": "poder-generalisimo.pdf",
+      "date": "2025-06-08T09:00:00",
+      "startdate": "2025-06-01T00:00:00",
+      "nextcheckdate": "2026-06-01T00:00:00",
+      "semantic_category": "docuemnto que otorga algun poder, es legal",
+      "docEnable": 1,
+      "fileEnable": 1,
+      "relacion": "Documento oficial"
+    },
+    {
+      "identitytype": "Cert. de Propiedad",
+      "identitystate": "En espera",
+      "name": "Certificado de propiedad sobre xx",
+      "field1": "DP-457",
+      "field2": "N/A",
+      "temporary": 0,
+      "expirationdate": "2030-12-31T00:00:00",
+      "referenceVal": 501,
+      "referenceId": "PPT-501",
+      "format": "PDF",
+      "docstype": "Propiedad",
+      "docstate": "Pendiente",
+      "archive": "UEsDdsfhgsadfghjgBBQACAgI...==",
+      "filename": "titulo de propiedad.pdf",
+      "date": "2025-06-08T10:00:00",
+      "startdate": "2025-06-02T00:00:00",
+      "nextcheckdate": "2026-06-02T00:00:00",
+      "semantic_category": "documento que demuestra pocesion",
+      "docEnable": 1,
+      "fileEnable": 1,
+      "relacion": "Documento oficial 3"
+    }
+  ]
+}
+
+```
+
 </details>
 
  
