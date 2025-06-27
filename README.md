@@ -5767,6 +5767,98 @@ def encrypt_with_user_key(user_id: int, key_name: str, password: str, texto_a_en
 ```
 </details>
 
+<details>
+	<summary>Ver JSONs de ejemplo</summary>
+
+```json
+
+{
+    "auth": {
+        "cedula": 326102758, // 1: 326102758 2: 541101101 3: 282869978 4: 205332829 5: 367692370
+        "password": "Superclave@1", // 1: Superclave@1 2: Superclave@2 3: Superclave@3 4: Superclave@4 5: Superclave@5
+        "mfa": {
+            "method": "totp",
+            "code": "482915"
+        }
+    },
+    "proposalName": "Plan nacional de conectividad digital para zonas indígenas",
+    "proposalVersionName": "Versión piloto conectividad 2025 - V2",
+    "date": "2025-07-05 22:35:32.000",
+    "votos": [
+        {
+            "question": "¿Está de acuerdo con la implementación del proyecto?",
+            "voto": "No"
+        },
+
+        {
+            "question": "¿Qué beneficios espera del acceso a internet?",
+            "voto": "Telemedicina"
+        },
+
+        {
+            "question": "Califique la importancia del proyecto (1-5)",
+            "voto": "Moderado"
+        },
+
+        {
+            "question": "¿Considera que es una prioridad para su comunidad?",
+            "voto": "Sí"
+        },
+
+        {
+            "question": "¿Qué grupos deberían ser capacitados primero?",
+            "voto": "Líderes comunales"
+        }
+    ]
+}
+
+
+
+
+{
+    "auth": {
+        "cedula": 326102758, // 1: 326102758 2: 541101101 3: 282869978 4: 205332829 5: 367692370
+        "password": "Superclave@1", // 1: Superclave@1 2: Superclave@2 3: Superclave@3 4: Superclave@4 5: Superclave@5
+        "mfa": {
+            "method": "totp",
+            "code": "482915"
+        }
+    },
+    "proposalName": "Programa estratégico de gestión de residuos en zonas rurales",
+    "proposalVersionName": "Gestión Comunitaria de Residuos - Versión 2",
+    "date": "2025-06-11 22:35:32.000",
+    "votos": [
+        {
+            "question": "¿Esta de acuerdo con la implementacion?",
+            "voto": "Si"
+        },
+
+        {
+            "question": "¿Que elementos deberian incluirse?",
+            "voto": "A"
+        },
+
+        {
+            "question": "Califique la viabilidad del proyecto (1-5)",
+            "voto": "1"
+        },
+
+        {
+            "question": "¿Cree que se necesita mas analisis?",
+            "voto": "Si"
+        },
+
+        {
+            "question": "¿Que actores deben involucrarse?",
+            "voto": "Gobierno"
+        }
+    ]
+}
+
+```
+
+</details>
+
    
   </details>
 
