@@ -1692,22 +1692,28 @@ def revisarPropuesta_sp(req: func.HttpRequest) -> func.HttpResponse:
 
 <summary>Ver código del lado de SQL Server</summary>
 
-```
+```sql
 CREATE OR ALTER PROCEDURE dbo.revisarPropuesta
-    @proposalId INT
+    @proposalId INT -- ID de la propuesta a revisar
 AS
 BEGIN
+    -- Evita mostrar en consola la cantidad de filas afectadas por cada instrucción
     SET NOCOUNT ON;
+
+    -- Inicia una transacción para asegurar que todos los cambios se realicen o ninguno
     BEGIN TRANSACTION;
 
+    -- Declaración de variables auxiliares
     DECLARE
-        @idpropuesta    INT,
-        @TipoPropuesta  NVARCHAR(50),
-        @ProcessId      INT,
-        @Cnt            INT,
-        @ErrorMsg       NVARCHAR(MAX) = N'';
+        @idpropuesta    INT,             -- ID del tipo de propuesta (proposalTypeId)
+        @TipoPropuesta  NVARCHAR(50),    -- Nombre del tipo de propuesta
+        @ProcessId      INT,             -- ID del proceso asociado a la propuesta
+        @Cnt            INT,             -- Contador usado para validaciones
+        @ErrorMsg       NVARCHAR(MAX) = N''; -- Mensaje de error en caso de fallos
 
-    -- 1) Obtener tipo y nombre de la propuesta
+    -------------------------------------------------------------------------
+    -- PASO 1: Obtener el tipo y nombre de la propuesta desde su ID
+    -------------------------------------------------------------------------
     SELECT 
         @idpropuesta   = p.proposalTypeId,
         @TipoPropuesta = pt.name
@@ -1716,6 +1722,7 @@ BEGIN
       ON p.proposalTypeId = pt.proposalTypeId
     WHERE p.proposalId = @proposalId;
 
+    -- Si no se encuentra la propuesta, se genera un error y se sale
     IF @idpropuesta IS NULL
     BEGIN
         SET @ErrorMsg = N'Propuesta no encontrada (ID=' 
@@ -1723,14 +1730,17 @@ BEGIN
         GOTO ErrorHandler;
     END
 
-    -- 2) Localizar proceso asociado
+    -------------------------------------------------------------------------
+    -- PASO 2: Buscar el proceso relacionado con el tipo de propuesta
+    -------------------------------------------------------------------------
     SELECT TOP 1 
         @ProcessId = pr.processid
     FROM dbo.vpv_process AS pr
     WHERE pr.referencevalue = @idpropuesta
       AND pr.referenceid    = N'proposalTypeId'
-    ORDER BY pr.[order];
+    ORDER BY pr.[order]; -- Se asume que el proceso con menor orden es el principal
 
+    -- Si no hay proceso asociado, se lanza un error
     IF @ProcessId IS NULL
     BEGIN
         SET @ErrorMsg = N'Proceso no encontrado para proposalTypeId=' 
@@ -1738,7 +1748,13 @@ BEGIN
         GOTO ErrorHandler;
     END
 
-    -- 3a) Validar que no haya errores en vpv_workresults
+    -------------------------------------------------------------------------
+    -- PASO 3A: Validación en tabla vpv_workresults (resultados del proceso)
+    -- Se verifica que:
+    --   - No existan errores diferentes de 0
+    --   - El mensaje de error sea exactamente 'Nulo'
+    --   - El resultado haya sido realizado por IA Azure
+    -------------------------------------------------------------------------
     SELECT @Cnt = COUNT(*)
     FROM dbo.vpv_workresults AS wr
     WHERE wr.processid      = @ProcessId
@@ -1748,13 +1764,17 @@ BEGIN
         OR wr.performedby  <> N'IA Azure'
       );
 
+    -- Si se encuentra al menos un registro con fallos, se lanza error
     IF @Cnt > 0
     BEGIN
         SET @ErrorMsg = N'Validación fallida en vpv_workresults';
         GOTO ErrorHandler;
     END
 
-    -- 3b) Validar que no haya errores en vpv_extractedinfos
+    -------------------------------------------------------------------------
+    -- PASO 3B: Validación en tabla vpv_extractedinfos (información extraída)
+    -- Se valida que no haya errores en los datos procesados vinculados al proceso
+    -------------------------------------------------------------------------
     SELECT @Cnt = COUNT(*)
     FROM dbo.vpv_extractedinfos AS ei
     JOIN dbo.vpv_workresults AS wr2
@@ -1762,34 +1782,47 @@ BEGIN
     WHERE wr2.processid = @ProcessId
       AND ei.error     <> 0;
 
+    -- Si se encuentra algún error en los datos extraídos, se detiene el proceso
     IF @Cnt > 0
     BEGIN
         SET @ErrorMsg = N'Validación fallida en vpv_extractedinfos';
         GOTO ErrorHandler;
     END
 
-    -- 4) Actualizar estado de la propuesta y trazabilidad
+    -------------------------------------------------------------------------
+    -- PASO 4: Actualización del estado de la propuesta y trazabilidad
+    -------------------------------------------------------------------------
+
+    -- Se marca la propuesta como "iniciada" y se registra la fecha actual
     UPDATE dbo.vpv_proposals
     SET 
-        startingDate = GETDATE(),
-        statusId     = 12
+        startingDate = GETDATE(), -- Marca cuándo empezó su revisión
+        statusId     = 12         -- Estado "Revisado y aprobado por IA"
     WHERE proposalId = @proposalId;
 
+    -- Se deja un rastro en los resultados del proceso, indicando quién la revisó
     UPDATE dbo.vpv_workresults
     SET 
-        performedby = SUSER_SNAME(),
+        performedby = SUSER_SNAME(), -- Nombre del usuario que ejecutó la revisión
         details     = N'Trazabilidad de análisis técnico completado; fuente de aprobación: IA Azure.'
     WHERE processid = @ProcessId;
 
+    -- Finaliza exitosamente la transacción
     COMMIT TRANSACTION;
 
+    -- Mensaje de confirmación en consola
     PRINT N'Propuesta revisada exitosamente.';
-    RETURN 0;
+    RETURN 0; -- Éxito
 
+    -------------------------------------------------------------------------
+    -- MANEJO DE ERRORES: En caso de cualquier falla
+    -------------------------------------------------------------------------
 ErrorHandler:
+    -- Revierte cualquier cambio hecho en la base
     ROLLBACK TRANSACTION;
+    -- Lanza el mensaje de error personalizado
     RAISERROR(@ErrorMsg, 16, 1);
-    RETURN -1;
+    RETURN -1; -- Código de error
 END;
 GO
 ```
