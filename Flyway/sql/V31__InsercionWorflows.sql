@@ -1,31 +1,32 @@
--- INSERCION DE WORKFLOWS
+SET NOCOUNT ON;
+GO
 
----------------
---STEP TYPES
---------------
+-----------------------
+-- 1. INSERT STEP TYPES
+-----------------------
+DECLARE @stepTypeId1 INT, @stepTypeId2 INT;
 
 INSERT INTO [dbo].[vpv_steptypes] ([type])
-VALUES 
-    ('Validacion de Comentario'),
-    ('Validación de documento');
+OUTPUT inserted.idStepType INTO @stepTypeId1
+VALUES ('Validacion de Comentario');
 
+INSERT INTO [dbo].[vpv_steptypes] ([type])
+OUTPUT inserted.idStepType INTO @stepTypeId2
+VALUES ('Validación de documento');
 
------------------
---PROCESSTYPES
------------------
-INSERT INTO [dbo].[vpv_processtypes]
-           ([name])
-     VALUES
-           ('IA')
+---------------------------
+-- 2. INSERT PROCESS TYPES
+---------------------------
+DECLARE @processTypeId INT;
 
+INSERT INTO [dbo].[vpv_processtypes] ([name])
+OUTPUT inserted.idProcessType INTO @processTypeId
+VALUES ('IA');
 
-
-------------------
---WORKFLOW STEPS
-------------------
-
-INSERT INTO [dbo].[vpv_workflowsteps]
-    (
+---------------------------
+-- 3. INSERT WORKFLOW STEPS
+---------------------------
+INSERT INTO [dbo].[vpv_workflowsteps] (
      [processtypeid],
      [steptypeid],
      [steporder],
@@ -33,12 +34,13 @@ INSERT INTO [dbo].[vpv_workflowsteps]
      [manual],
      [enable])
 VALUES 
-    (1, 1, 1, 'Verificar estructura del comentario', 0, 1),
-    (1, 1, 2, 'Verificar presencia de encabezado', 0, 1),
-    (1, 1, 3, 'Verificar firma o pie de autor', 0, 1),
-	(1, 2, 1, 'Verificar que el documento cumple con el formato requerido', 0, 1),
-    (1, 2, 2, 'Verificar que el documento no esté vencido', 0, 1),
-    (1, 2, 3, 'Verificar que el documento tenga firma digital válida', 0, 1);
+    (@processTypeId, @stepTypeId1, 1, 'Verificar estructura del comentario', 0, 1),
+    (@processTypeId, @stepTypeId1, 2, 'Verificar presencia de encabezado', 0, 1),
+    (@processTypeId, @stepTypeId1, 3, 'Verificar firma o pie de autor', 0, 1),
+    (@processTypeId, @stepTypeId2, 1, 'Verificar que el documento cumple con el formato requerido', 0, 1),
+    (@processTypeId, @stepTypeId2, 2, 'Verificar que el documento no esté vencido', 0, 1),
+    (@processTypeId, @stepTypeId2, 3, 'Verificar que el documento tenga firma digital válida', 0, 1);
+
 
 INSERT INTO [dbo].[vpv_api]
        ([name],
