@@ -49,6 +49,7 @@ from Endpoints_ORM.validarPermisos import validar_permiso
 def comentar(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Insertando el comentario')
 
+    #Se valida que unicamente se use el metodo POST
     if req.method != "POST":
         return func.HttpResponse(
             "Metodo no permitido",
@@ -61,7 +62,7 @@ def comentar(req: func.HttpRequest) -> func.HttpResponse:
         req_body = req.get_json()
 
         idcard = req_body.get("idCard")
-        #Validacion del usuario, en este caso debe ser un proponente encargado de la configuracion y creacion de propuestas
+        #Validacion del usuario, en este caso puede ser un ciudadno cualquiera
         try:
             validar_permiso(session, idcard, 'Ciudadano')
         except PermissionError as e:
@@ -71,36 +72,31 @@ def comentar(req: func.HttpRequest) -> func.HttpResponse:
                 mimetype="application/json"
             )
 
-        #Sesion Activa
+        #Se llama Verificar sesion para saber si el usuario del ID card está enable
         Sesion = VerificarSesionActiva(req_body, session)
         if not Sesion:
             return func.HttpResponse("El usuario no tiene sesión activa", status_code=403)
+        
+
+        #Insercion del documento que se adjunta por parte del usuario
+        documento = InsertDocument(req_body, session)
+        if not documento:
+            return func.HttpResponse("No se pudo insertar el documento", status_code=500)
+        
+
+        #Validación del json para verificar que hayan una seccion de comment
+        comments = req_body.get("Comment")
+        if not comments or not isinstance(comments, list):#validacion de la existencia de datos
+            return func.HttpResponse("Comentarios inválidos o inexistentes", status_code=400)
+                
         
         #Realizar la inserción principal del comentario con estado "Pendiente de Revision"
         comentario = InsertarComentario (req_body, session)
         if not comentario:
             return func.HttpResponse("El comentario no se pudo insertar", status_code=500)
 
-        #Validación del json e insercion de las demás componentes
-        comments = req_body.get("Comment")
-        if not comments or not isinstance(comments, list):#validacion de la existencia de datos
-            return func.HttpResponse("Comentarios inválidos o inexistentes", status_code=400)
-
-        #Insercion del doc
-        documento = InsertDocument(req_body, session)
-        if not documento:
-            return func.HttpResponse("No se pudo insertar el documento", status_code=500)
-        # Log de verificación
-        logging.info(f"Documento insertado con fecha: {documento.date}")
-        
-
         
         #---------------------------- WORKFLOW COMMENT ---------------------------
-        # Insertar comentario (Pendiente de Revisión)
-        comentario = InsertarComentario(req_body, session)
-        if not comentario:
-            return func.HttpResponse("No se pudo insertar el comentario inicial", status_code=500)
-
         # Insertar parámetros del comentario
         parametro_coment = InsertarParametros(req_body, session, "comentario")
         if not parametro_coment:
@@ -118,22 +114,29 @@ def comentar(req: func.HttpRequest) -> func.HttpResponse:
 
         #--------------------------- WORKFLOW DOCS ----------------------------------
 
-        # Insertar parámetros del documento
+        # Insertar parametros que serán analizados con IA
+        #Se pasa el tipo "documento" para saber que ese será el objeto analizado
         parametro_doc = InsertarParametros(req_body, session, "documento")
         if not parametro_doc:
             return func.HttpResponse("No se pudo insertar los parámetros del documento", status_code=500)
 
-        # Crear proceso para el documento
+
+        # Se crea el proceso especifico para el documento insertado anteriormente y el proceso
+        #que se acaba de insertar
         proceso_doc = CrearProceso(documento, parametro_doc, session, "documento")
         if not proceso_doc:
             return func.HttpResponse("No se pudo crear el proceso para el documento", status_code=500)
 
-        # Ejecutar análisis para el documento
+
+        # Se crea una simulacion de resultados al analizar el proceso especifico de tipo "documento"
         resultado_doc = InsertarSimulacion(req_body, proceso_doc, session, tipo="documento")
         if not resultado_doc:
             return func.HttpResponse("No se pudo ejecutar el análisis del documento", status_code=500)
 
-        #Insertar comentario final con nuevo estado que depende de ambos análisis tanto el reult de comment como el del doc
+
+        #Insertar comentario final basado en los erores que genere la simulacion de resultados
+        # Si hay elemento en el campo error de doc o comentario el documento se inserta con nuevo estado RECHAZADO
+        # de lo contrario será APROBADO
         estado_final = "Rechazado" if resultado_coment.error or resultado_doc.error else "Aprobado"
         comentario_final = InsertarComentario(req_body, session, estado_override=estado_final)
         if not comentario_final:
@@ -162,9 +165,9 @@ Salidas:True si el usuario está activo.
 
 '''
 def VerificarSesionActiva(req_body, session):
-    id_card = req_body.get("idCard")
+    id_card = req_body.get("idCard")    #Se toma el campo idCard del JSON
 
-    if not id_card:
+    if not id_card: #Verifica existencia del dato en el JSON
         raise ValueError("Se requiere el campo 'idCard' para verificar la sesión.")
 
     # Abrir la llave de desencriptación
@@ -178,15 +181,15 @@ def VerificarSesionActiva(req_body, session):
         AND CONVERT(nvarchar(50), DECRYPTBYKEY(id_card)) = :idCard
     """), {'idCard': id_card})
 
-    row = result.fetchone()
+    row = result.fetchone() #Guarda el resultado que arroja la consulta de la base de datos en row
 
     # Cerrar la llave
     session.execute(text("CLOSE SYMMETRIC KEY llavecedula"))
 
-    if not row:
+    if not row: #No encontro nada en la variable row? devuelve erorr
         return {"error": f"No se encontró un usuario activo con la cédula {id_card}"}, 400
 
-    # Usuario está activo
+    # Encontró algo, devuleve true
     return True
 
 '''
@@ -195,49 +198,56 @@ Entradas: JSON con la sección "Document" (filename, docstype, docstate, format,
 Salidas: Objeto insertado o sea la tabla docs
 '''
 def InsertDocument(req_body, session):
-    #Verifica la existencia de datos
+
+    #Busca la etiqueta "Documment" en el JSON, sino encuentra nada usa una lista vacía por defecto
     document_data = req_body.get("Document", [])
     
+    #Verifica exisencia de datos 
     if not document_data or not isinstance(document_data, list):
         raise ValueError("Debe adjuntar un documento")
 
+    #Busca el primer docuemnto que se guardo en document data
     document_info = document_data[0]
 
-    #Validar el hecho de que haya un documento
+    #Empieza a validar que existan datos del document data
     filename = document_info.get("filename")
     if not filename:
         raise ValueError("Debe adjuntar un documento")
 
-    #Obtener el Id del identity doc
+    #Obtiene el campo de identitydoc y hace una consulta en la tabla de IdentityDocs para saber
+    #cuál es el el id que corresponde a ese nombre usando la columna referenceid (es un codigo)
     identitydoc = document_info.get("identitydoc")
     doc_identity_id = session.query(VpvIdentityDoc.identitydocsid).filter_by(referenceid=identitydoc).first()
     if not doc_identity_id:
         raise ValueError(f"No se encontró el identity de documento {identitydoc}")
     
-    # Obtener el ID del tipo de documento
+    #Obtiene el campo de doctype y hace una consulta en la tabla de DocTypes para saber
+    #cuál es el el id que corresponde a ese nombre usando la columna name
     doc_type = document_info.get("docstype")
     doc_type_id = session.query(VpvDocTypes.docstypeid).filter_by(name=doc_type).first()
     if not doc_type_id:
         raise ValueError(f"No se encontró el tipo de documento {doc_type}")
     
-    # Obtener el ID del estado del documento 
+    #Obtiene el campo de doctype y hace una consulta en la tabla de docstates para saber
+    #cuál es el el id que corresponde a ese nombre usando la columna name
     doc_state = document_info.get("docstate")
     doc_state_id = session.query(VpvDocState.docstateid).filter_by(name=doc_state).first()
     if not doc_state_id:
         raise ValueError(f"No se encontró el estado del documento {doc_state}")
     
-    # oBTENER el ID del formato del documento
+    #Obtiene el campo de doctype y hace una consulta en la tabla de format para saber
+    #cuál es el el id que corresponde a ese nombre usando la columna name
     doc_format = document_info.get("format")
     format_id = session.query(VpvFormat.formatid).filter_by(name=doc_format).first()
     if not format_id:
         raise ValueError(f"No se encontró el formato {doc_format}")
     
 
-    #Cifrar el filename
+    #Cifrar el filename en caso de datos sensibles 
     filename_encrypted = encrypt_checksum(filename)
-    #Para generar fecha actual 
-    now = datetime.utcnow()    
-    # Crea el objeto para el documento
+    now = datetime.utcnow()    #Para generar fecha actual
+
+    # Crea el objeto para el documento o sea una tabla e inserta los valores mapeados antes
     document = VpvDoc(
         identitydocsid=doc_identity_id[0],
         formatid=format_id[0],
@@ -251,8 +261,7 @@ def InsertDocument(req_body, session):
         semantic_category=req_body.get("semantic_category")
     )
 
-
-
+    #Generacion del checksum
     datos_a_checksum = (document.identitydocsid, 
                         document.formatid, 
                         document.docstypeid, 
@@ -264,19 +273,17 @@ def InsertDocument(req_body, session):
                         document.semantic_category)
     checksum = encrypt_checksum(*datos_a_checksum)
 
-
-
     binary_checksum = bytes(checksum, 'utf-8')
 
 
-    #Se inserta el checksum y archive del doc
+    #Se inserta el checksum y archive del doc que tambien debe ir encriptado por su tipo de dato
     document.checksum = binary_checksum 
     document.archive = binary_checksum
     
-    # Inserta el documento en la base de datos
+    # Inserta el documento en la bd pero hasta que se haga commit
     session.add(document)
 
-    return document
+    return document #Devuelve el objeto 
 
 '''
 Funcion que valida existencia de info wn el body externos para hacer insercion en comentario
@@ -286,7 +293,8 @@ Salidas: Objeto insertado o sea la tabla proposal comments
 '''
 def InsertarComentario(req_body, session, estado_override=None ):
 
-    # obtener datos del json
+    #Obtiene el campo de propversion y hace una consulta en la tabla de de verions para saber
+    #cuál si existe un tittle con ese nombre
     proposal_version = req_body.get("ProposalVersion")
     proposal_version = session.query(VpvProposalVersions).filter_by(tittle=proposal_version).first() 
 
@@ -298,50 +306,50 @@ def InsertarComentario(req_body, session, estado_override=None ):
     if not proposal_version.commentsAllowed:
         raise ValueError("Los comentarios no están permitidos para esta propuesta.")
 
-    # Obtener el ID del documento insertado previamente
+    #Obtiene el campo de filename y hace una consulta en la tabla de de docs para saber
+    #cuál es el id con ese nombre
     doc_identity_id = req_body.get("Document")[0]["filename"]
     doc_id = session.query(VpvDoc.docid).filter_by(filename=doc_identity_id).first()
     if not doc_id:
         return func.HttpResponse(f"No se encontró el documento {doc_identity_id}", status_code=400)
     
-    # Obtener el id del status que se le asigna al comment "Pendiente de revisión"
+    # Otiene el nombre de estado en la etiqueta del JSON
     status_name = req_body["Comment"][0]["status"]
 
-    #Se inserta el estado nuevo del comentario en caso de error o no 
+    #Cuando se inserta el comentario por segunda vez, viene con un Status override que debe ser ahora el 
+    #nuevo status_name (Nuevo estado despues de hacer el proceso de workflow)
     if estado_override:
         status_name = estado_override
 
-    #Si no hay error entonces inserta el estado original del JSON
+    #Consulta el id del estado segun la columna name
     status_id = session.query(VpvProcessStatus.statusId).filter_by(name=status_name).first()
     if not status_id:
         raise ValueError(f"No se encontró el estado con el nombre: {status_name}")
 
+    #Busca el primer Commet de la lista dentro del JSON
+    comment_data = req_body.get("Comment")[0]
 
-    # Crear el comentario
-    comment_data = req_body.get("Comment")[0]   #Se accede al atributos de comment y sus subcampos
-
-    #Comentario cifrado
+    #Comentario cifrado por datos sensibles
     comentario = comment_data.get("comment")
     comentario_cifrado = encrypt_checksum(comentario) 
 
-    #Insertar metadatos solo si tiene estado aprobado
+    #Insertar metadatos solo si tiene estado aprobado el comentario
     id_card = req_body.get("idCard")
     metadatos = None
     if status_name.strip().lower() == "aprobado":
-        #usuario = comment_data.get("madeBy", "Usuario desconocido")
         metadatos = f"Comentario Aprobado de la propuesta '{proposal_version.tittle}' por el usercard {id_card} "
 
-
+    #crea la isnatncia del objeto y asigna valores mapeados
     new_comment = VpvProposalComments(
         comment=comentario_cifrado,
         madeBy=1,
-        docid=doc_id[0],  #el doc obtenido de la consulta
-        proposalVersionId=proposal_version.proposalVersionId, #la prop id obtenido de la consulta
+        docid=doc_id[0], 
+        proposalVersionId=proposal_version.proposalVersionId,
         creationDate=comment_data.get("creationDate"),
         statusId=status_id[0],
         relacion=metadatos
     )
-
+    #Prepara checksum
     datos_a_checksum = (new_comment.comment,
                         new_comment.madeBy,
                         new_comment.docid,
@@ -351,16 +359,16 @@ def InsertarComentario(req_body, session, estado_override=None ):
                         new_comment.relacion)
     
     checksum = encrypt_checksum(*datos_a_checksum)
-
     binary_checksum = bytes(checksum, 'utf-8')
 
     #Asignar valor del checksum
     new_comment.checksum = binary_checksum
 
-    # Insertar el comentario en la base de datos
+    # Insertar el comentario en la base de datos pero no hace commit
     session.add(new_comment)
+    
 
-    return new_comment
+    return new_comment #devuelve objeto 
 
 
 #-------------------PROCESO DE WORKFLOWS ---------------------
@@ -376,6 +384,8 @@ Salidas:
 '''
 def InsertarParametros(req_body, session,tipo):
     
+    #Dependiendo el tipo que se reciba como parametro guarda la informacion de la etiqueta doc o comment
+    #y realiza un json que representa los parametros que revisará la IA
     if tipo == "comentario":
         config = {
             "comentario": req_body.get("Comment")[0]["comment"]}
@@ -388,16 +398,22 @@ def InsertarParametros(req_body, session,tipo):
 
     else:
         raise ValueError(f"Tipo de entrada no existente")
-    
+
+    #Consulta el id que se utiliza para el api de IA
+    api = session.query(VpvApi).filter_by(name="api-workflow-ia").first()
+    if not api:
+        raise ValueError("No se encontró una API con el nombre 'api-workflow-ia'.")
+
+
     nuevo_param = VpvParameters(
-        idApi = 1,
+        idApi = api.idApi,
         name=f"param-{uuid.uuid4().hex[:6]}", #Crea un identificador unico para cada parametro que se pase por el workflow en caso que se manden el mismo json varias veces
         configuration=json.dumps(config),
         enable=True
     )
+
     session.add(nuevo_param)
     session.flush()  #permite actualizar el objeto tipo tabla que fue insertado esto con la finalidad de obtener el id que fue generado al momento de la insercion.
-
 
     return nuevo_param
 
@@ -412,11 +428,12 @@ Salidas:
 '''
 def CrearProceso(objeto, parametro_obj, session, tipo):
 
-    # Obtener el tipo de proceso con nombre 'IA' 
+    # Obtener el el ID tipo de proceso con nombre 'IA' en la tabla Process Types con nombre IA
     processtype = session.query(VpvProcessTypes).filter_by(name='IA').first()
     if not processtype:
         raise ValueError("No se encontró el tipo de proceso 'IA' en la tabla processtypes")
 
+    #Valiad el proceso que se debe llevar segun el tipo que se vaya a analizar
     if tipo == "comentario":
         referenceid = "commentId"
         referencevalue = objeto.commentId
@@ -438,8 +455,8 @@ def CrearProceso(objeto, parametro_obj, session, tipo):
         referenceid=referenceid,     #Insercion de 'Commentid' para saber a qué hace refernecia el id de arriba
         parameterid=parametro_obj.parameterid,
         processmethodid=0,
-        name="Proceso IA de validación estructural",
-        description="Proceso automático para validar estructura del comentario",
+        name=nombre,
+        description=descripcion,
         enable=True
     )
     session.add(proceso)
@@ -458,6 +475,8 @@ Salidas:
 '''
 def InsertarSimulacion(req_body, process, session, tipo):
 
+    #Valida el tipo de validacion que se vaya a hacer y asigna un nombre con el cual buscaremos
+    #los steps que debe llevar ese proceso en especifico 
     if tipo == "comentario":
         tipo_validacion = "Validacion de Comentario"
     elif tipo == "documento":
@@ -465,39 +484,41 @@ def InsertarSimulacion(req_body, process, session, tipo):
     else:
         raise ValueError(f"Tipo de proceso no soportado: {tipo}")
 
-    #Realiza una consulta para saber los steps que lleva validar ese comentario
+    #Realiza una consulta para saber los steps que lleva validar ese proceso ya sea comnment o doc
     #SELECT * FROM vpv_workflowsteps 
     #WHERE processtypeid = 'Validacion de comentario' o 'Validacion de documento' AND enable = 1 
-    #ORDER BY steporder;
+    #ORDER BY steporder;   
     pasos = (
         session.query(VpvWorkflowSteps)
         .join(VpvStepTypes, VpvWorkflowSteps.steptypeid == VpvStepTypes.steptypeid)
         .filter(
             VpvWorkflowSteps.processtypeid == process.processtypeid,
             VpvWorkflowSteps.enable == True,
-            VpvStepTypes.type == tipo_validacion)
+            VpvStepTypes.type == tipo_validacion)   #Aqui se utiliza la variable anterior
         .order_by(VpvWorkflowSteps.steporder)
         .all())
 
     # Simulación de cada paso
     resumen_pasos = [] #Se crea una cadena para guardar los resultados de cada paso
-    hubo_error = False
+    hubo_error = False  
 
+    #Recorre cada uno de los pasos que se guardaron en pasos y por cada uno hace una simulacion de aprobacion
+    #usando random y dependiendo de esa condicion se guarda cada paso como un json con su resultado: APROBADO o RECHAZADO
     for paso in pasos:
         aprobado = random.random() > 0.2  # 80% chance de tener exito el resultado 
         resultado = {
             "paso": paso.name,
             "resultado": "Aprobado" if aprobado else "Falló"
         }
-        resumen_pasos.append(resultado) #Agrega el resultado del paso a la lista
+        resumen_pasos.append(resultado) #Agrega el resultado del obtenido en cada paso a la lista
         if not aprobado:
             hubo_error = True
 
-    #Detalles del Json
+    #Detalles del Json que se insertan en la tabla de WORK RESULTS
     details = json.dumps({
-        "total_pasos": len(pasos),
-        "errores": sum(1 for r in resumen_pasos if r["resultado"] == "Falló"),
-        "resumen": resumen_pasos
+        "total_pasos": len(pasos),  #Conteo de los pasos 
+        "errores": sum(1 for r in resumen_pasos if r["resultado"] == "Falló"),  #Suma de los errors
+        "resumen": resumen_pasos    #Pasos y su debido resultado
     })
 
     # Crear y guardar el resultado del workflow
@@ -518,6 +539,7 @@ def InsertarSimulacion(req_body, process, session, tipo):
     session.add(workresult)
     session.flush()
 
+    #Si hubo error = TRUE llama a la funcion insertarLog para dejar registro sobre el intento del comentario
     if hubo_error:
         insertarLog(req_body, session, workresult.details)
 
@@ -543,12 +565,12 @@ def insertarLog(req_body, session, error_msg):
 
     # Crear descripción del log y user que realiza el intento de comentar
     id_card = req_body.get("idCard")
-    descripcion = f"Error: {error_msg}"
+    descripcion = f"Error: {error_msg}" #Recibe los details generados en la simulacion para saber qué falló y que no
     username = f"Comentario realizado por el usercard: {id_card}"
     fecha = f"Intento de comentario: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}"
 
 
-
+    #Crea el objeto 
     log = VpvLogs(
         description=descripcion,
         computer='computer PV',

@@ -20,3 +20,4 @@ class VpvProposalVersions(Base):
     idUser = Column(Integer, nullable=False)  # Asumo que no hay FK para usuarios
     proposalId = Column(Integer, ForeignKey('vpv_proposals.proposalId'), nullable=False)
     lastVersion = Column(Boolean, nullable=False, default=True)
+    commentsAllowed = Column(Boolean, nullable=False, default=True)
