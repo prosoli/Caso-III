@@ -1165,6 +1165,11 @@ La primera de ella se hace por medio de dos tablas donde se guardan los usuarios
 
 Despues la segunda configuración consiste en hacer roles como más individuales segun la informacion que se quiee que el usuario vea.  En este caso se utiliza los roles y se filtran ciertos elementos del dashboard en sí como que no pueda ver ciertas propuestas o ciertas ciudades, etc. Este tambien está incorporado al RLS porque de esta manera al crear un rol se puede agregar personas que puedan o no puedan acceder a este rol 
 
+A continuacion, se muestra la vista despues de realizar login y no poseer permisos/
+
+![image](https://github.com/user-attachments/assets/10c554bc-37a4-4156-9261-dacd9b5747da)
+
+
   </details>
 
 ## Dashboard principal
