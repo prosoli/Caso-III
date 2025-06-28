@@ -1617,7 +1617,7 @@ La secuencia de pasos es la siguiente:
 - Que tenga un proceso asociado (`vpv_process`) válido.
 - Que no existan errores en los resultados (`vpv_workresults`).
 - Que no existan errores en la extracción de información (`vpv_extractedinfos`).
-- Si todo es correcto, se marca la propuesta como revisada (`statusId = 12`) y se registra el usuario que completó el análisis.
+- Si todo es correcto, se marca la propuesta como "Publicada" (`statusId = 12`) y se registra el usuario que completó el análisis.
 
 <details>
   <summary>Ver código del lado de API</summary>
@@ -1699,7 +1699,7 @@ AS
 BEGIN
     -- Evita mostrar en consola la cantidad de filas afectadas por cada instrucción
     SET NOCOUNT ON;
-
+	 
     -- Inicia una transacción para asegurar que todos los cambios se realicen o ninguno
     BEGIN TRANSACTION;
 
@@ -1714,6 +1714,12 @@ BEGIN
     -------------------------------------------------------------------------
     -- PASO 1: Obtener el tipo y nombre de la propuesta desde su ID
     -------------------------------------------------------------------------
+
+	-- TABLAS INVOLUCRADAS:
+	-- vpv_proposals: Tabla que contiene las propuestas, de esta manera conseguimos llegar
+	-- al tipo de la propuesta para encontrar su proceso asignado.
+	-- vpv_proposalTypes: Aquí se encuentra los tipos de propuestas, cada tipo
+	-- de propuesta tiene un proceso asignado, por eso tenemos que sacar el tipo
     SELECT 
         @idpropuesta   = p.proposalTypeId,
         @TipoPropuesta = pt.name
@@ -1733,6 +1739,12 @@ BEGIN
     -------------------------------------------------------------------------
     -- PASO 2: Buscar el proceso relacionado con el tipo de propuesta
     -------------------------------------------------------------------------
+
+	-- TABLAS INVOLUCRADAS:
+	-- vpv_process: Tabla que guarda la información acerca de como va a ser el proceso (workflow) 
+	-- para ya sea un doc, propuesta o información que necesite una línea de proceso.
+	-- Aquí lo que hacemos es que a partir del tipo de la propuesta llegamos al proceso que
+	-- le toca
     SELECT TOP 1 
         @ProcessId = pr.processid
     FROM dbo.vpv_process AS pr
@@ -1755,6 +1767,10 @@ BEGIN
     --   - El mensaje de error sea exactamente 'Nulo'
     --   - El resultado haya sido realizado por IA Azure
     -------------------------------------------------------------------------
+
+	-- TABLAS INVOLUCRADAS:
+	-- vpv_workresults: Tabla que guarda los resultados de las operaciones en un workflow, en este
+	-- caso la usamos para asegurarnos que en todo el proceso no hubo fallos ni intervenciones
     SELECT @Cnt = COUNT(*)
     FROM dbo.vpv_workresults AS wr
     WHERE wr.processid      = @ProcessId
@@ -1775,6 +1791,11 @@ BEGIN
     -- PASO 3B: Validación en tabla vpv_extractedinfos (información extraída)
     -- Se valida que no haya errores en los datos procesados vinculados al proceso
     -------------------------------------------------------------------------
+
+	-- TABLAS INVOLUCRADAS:
+	-- vpv_extractedinfos: Tabla que guarda la información extraída de cada proceso, un workresult
+	-- indica si estuvo correcto pero esta tabla dice que sacamos de ese proceso y si está bien.
+	-- En este caso la usamos para asegurarnos que la información extraída este correcta.
     SELECT @Cnt = COUNT(*)
     FROM dbo.vpv_extractedinfos AS ei
     JOIN dbo.vpv_workresults AS wr2
@@ -1793,11 +1814,15 @@ BEGIN
     -- PASO 4: Actualización del estado de la propuesta y trazabilidad
     -------------------------------------------------------------------------
 
-    -- Se marca la propuesta como "iniciada" y se registra la fecha actual
+	-- TABLAS INVOLUCRADAS:
+	-- vpv_proposals: Se actualiza la propuesta 
+	-- vpv_workresults: Se registra el último flujo de trabajo donde se deja quién
+	-- realizó la revisión de la propueta.
+    -- Se marca la propuesta como "Publicada" y se registra la fecha actual
     UPDATE dbo.vpv_proposals
     SET 
-        startingDate = GETDATE(), -- Marca cuándo empezó su revisión
-        statusId     = 12         -- Estado "Revisado y aprobado por IA"
+        startingDate = GETDATE(), -- De actualiza la fecha
+        statusId     = 12         -- Estado "Publicada"
     WHERE proposalId = @proposalId;
 
     -- Se deja un rastro en los resultados del proceso, indicando quién la revisó
