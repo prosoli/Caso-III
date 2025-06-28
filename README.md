@@ -34,9 +34,9 @@ El Micitt debe presentar un prototipo de Voto Pura Vida a los poderes de la rep�
 
 🌎 [Ir al Implementación del API](#implementación-del-api)
 
-🌎 [Endpoints implementados por Stored Procedures](#endpoints-implementados-por-Stored-Procedures)
+🌎 [Endpoints implementados por Stored Procedures](#-⚪-endpoints-implementados-por-stored-procedures)
 
-🌎 [Endpoints implementados por ORM](#endpoints-implementados-por-ORM)
+🌎 [Endpoints implementados por ORM](#endpoints-implementados-por-orm)
 
 🌎 [Ir al DashBoard de consulta](#dashboard-de-consulta)
 
