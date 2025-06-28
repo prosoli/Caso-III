@@ -28,15 +28,15 @@ El Micitt debe presentar un prototipo de Voto Pura Vida a los poderes de la rep�
 
 ## 📖 Indice
 
-🌎 [Ir al Diseño de Base de Datos](#diseño-sql)
+🌎 [Ir al Diseño de Base de Datos](#-diseño-sql)
 
-🌎 [Ir a Catálogo Base del sistema](#catalogo-base-del-sistema)
+🌎 [Ir a Catálogo Base del sistema](#-catalogo-base-del-sistema)
 
-🌎 [Ir al Implementación del API](#implementación-del-api)
+🌎 [Ir al Implementación del API](#-implementación-del-api)
 
-🌎 [Endpoints implementados por Stored Procedures](#endpoints-implementados-por-stored-procedures)
+🌎 [Endpoints implementados por Stored Procedures](#-endpoints-implementados-por-stored-procedures)
 
-🌎 [Endpoints implementados por ORM](#endpoints-implementados-por-orm)
+🌎 [Endpoints implementados por ORM](#-endpoints-implementados-por-orm)
 
 🌎 [Ir al Board de consulta](#-dashboard-de-consulta)
 
@@ -65,7 +65,7 @@ Por otro lado, se presenta el script de creación de la base de datos, con el cu
 
 ---
 
-## Catalogo Base del sistema
+## 📈 Catalogo Base del sistema
 Este catálogo incluye, entre otros, datos sobre nacionalidades, provincias, niveles educativos, áreas profesionales, tipos de filtro, unidades de medida, zonas de impacto, estados de votación, y otros elementos que forman parte del modelo de datos general.
 
 
@@ -1426,7 +1426,7 @@ Estas vistas son esenciales para alimentar el dashboard y asegurar que se muestr
 </details>
 
 
-## Implementación del API
+## 🔌 Implementación del API
 <details>
   <summary>Desplegar información</summary>
 
@@ -1586,7 +1586,7 @@ Esta estructura permite mantener el código organizado, separando claramente las
 
 ---
 
-  ## Endpoints implementados por Stored Procedures
+  ## ⚪ Endpoints implementados por Stored Procedures
 
 Los endpoints de esta sección utilizan procedimientos almacenados (Stored Procedures) en SQL Server para ejecutar la lógica del sistema directamente desde la base de datos. Esta estrategia permite manejar operaciones complejas de forma eficiente, segura y con control transaccional.
 
@@ -4819,7 +4819,7 @@ EXEC [dbo].[vpvSP_RepartirDividendos]
 
   </details>
 
-## Endpoints implementados por ORM
+## ⚫ Endpoints implementados por ORM
 
 Los s implementados mediante **ORM (Object-Relational Mapping)** permiten interactuar con la base de datos de forma más abstracta y orientada a objetos. En lugar de escribir directamente consultas SQL, se trabajan con clases y objetos que representan las tablas y registros de la base de datos. Esto facilita el desarrollo, mantenimiento y escalabilidad del código.
 
