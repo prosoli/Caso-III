@@ -38,7 +38,7 @@ El Micitt debe presentar un prototipo de Voto Pura Vida a los poderes de la rep�
 
 🌎 [Endpoints implementados por ORM](#endpoints-implementados-por-orm)
 
-🌎 [Ir al DashBoard de consulta](#dashboard-de-consulta)
+🌎 [Ir al Board de consulta](#-dashboard-de-consulta)
 
 ---
 ## 📌 Diseño SQL
