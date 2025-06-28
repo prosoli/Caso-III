@@ -1423,7 +1423,7 @@ BEGIN
     -- 0) Desencriptar y extraer usuario
     -----------------------------------------------------------------
     OPEN SYMMETRIC KEY llavecedula
-      DECRYPTION BY PASSWORD = 'ClaveCedula@1';
+      DECRYPTION BY PASSWORD = 'clavecedula';
 
     -- recorremos los usuario y vamos desencriptando la cedula y comparandola con la que el usuario proveyo
     SELECT @idUser = u.idUser
