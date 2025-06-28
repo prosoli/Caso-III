@@ -5067,6 +5067,7 @@ import azure.functions as func
 from database import SessionLocal
 from Models.votar.models import User, Voter
 
+
 from helpers.votar.insertLogs import insertLog
 from helpers.votar.obtenerIdUser import obtenerIdUser
 from helpers.votar.user_can import user_can
@@ -5077,6 +5078,8 @@ from helpers.votar.insert_votes import insert_votes
 from helpers.votar.mark_token_used import mark_token_used
 from helpers.votar.generate_blind_token import generate_blind_token
 
+from Endpoints_ORM.validarPermisos import validar_permiso
+
 
 def votar(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Procesando solicitud de permiso (votar).')
@@ -5085,11 +5088,13 @@ def votar(req: func.HttpRequest) -> func.HttpResponse:
     ## 1) Parsear JSON de entrada ##
     ################################
     try:
+        # Intentamos leer el cuerpo de la petición como JSON
         body = req.get_json()
     except ValueError:
+        # Si falla, devolvemos 400 Bad Request
         return func.HttpResponse("JSON inválido.", status_code=400)
 
-    # user_id  = body.get("auth", {}).get("idUser")
+    # Extraemos los campos dentro del json
     id_card  = body.get("auth", {}).get("cedula")
     password = body.get("auth", {}).get("password")
     token = body.get("auth", {}).get("mfa", {}).get("code")
@@ -5102,6 +5107,7 @@ def votar(req: func.HttpRequest) -> func.HttpResponse:
     #############################
     ## 2) Validaciones básicas ##
     #############################
+    # Verificamos que ninguno de los campos críticos sea None o cadena vacía
     if not all([id_card, password, proposal_name, version_name, date_str]):
         return func.HttpResponse(
             "Faltan campos obligatorios en el JSON.",
@@ -5112,8 +5118,10 @@ def votar(req: func.HttpRequest) -> func.HttpResponse:
     ## Obtener el idUser ##
     #######################
     try:
+         # Convertimos la cedula en un idUser llamando a helper
         user_id = obtenerIdUser(id_card)
     except Exception:
+        # Si falla, devolvemos error personalizado
         return func.HttpResponse(
             json.dumps({"error": "No se pudo obtener el idUser."}, ensure_ascii=False), 
             status_code=400, 
@@ -5124,6 +5132,7 @@ def votar(req: func.HttpRequest) -> func.HttpResponse:
     try:
         date_to_check = datetime.fromisoformat(date_str)
     except Exception:
+        # Fecha con formato invalido
         return func.HttpResponse(
             json.dumps({"error": "Formato de fecha inválido."}, ensure_ascii=False), 
             status_code=400, 
@@ -5136,6 +5145,7 @@ def votar(req: func.HttpRequest) -> func.HttpResponse:
     ################################################
     try:
         with SessionLocal() as session:
+            # Buscamos el usuario en la BD y comprobamos flags enable/deleted
             user = session.get(User, user_id)
             if not user or not user.enable or user.deleted:
                 return func.HttpResponse(
@@ -5148,154 +5158,73 @@ def votar(req: func.HttpRequest) -> func.HttpResponse:
         return func.HttpResponse(f"Error interno: {e}", status_code=500)
 
 
-    ###############################################
-    ## 4) Verificar permisos CRUD sobre la tabla ##
-    ###############################################
-    try:            
-        # 1) Verificar SELECT sobre vpv_votingConfigurations
-        if not user_can(user_id, "vpv_votingConfigurations", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_votingConfigurations", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
+    ################################################
+    ## 4) Verificar permisos CRUD sobre las tabla ##
+    ################################################  
+    try:
+        with SessionLocal() as session:
+            # Validacion de rol "Ciudadano"
+            validar_permiso(session, id_card, 'Ciudadano')
+    except PermissionError as e:
+        # Si no pasa validacion de rol, devolvemos 403
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}),
+            status_code=403,
+            mimetype="application/json"
+        )    
+    
+    try:
+        # Define aquí todas las verificaciones que quieras hacer:
+        # Lista de (tabla, acción) a verificar
+        permisos = [
+            ("vpv_votingConfigurations", "SELECT"),
+            ("vpv_encryptionkeys",       "SELECT"),
+            ("vpv_proposals",            "SELECT"),
+            ("vpv_proposalVersions",     "SELECT"),
+            ("vpv_PopulationFilters",    "SELECT"),
+            ("vpv_TargetPopulations",    "SELECT"),
+            ("vpv_TargetPopulationsVoting","SELECT"),
+            ("vpv_FilterTypes",          "SELECT"),
+            ("vpv_demographics",         "SELECT"),
+            ("vpv_votingQuestions",      "SELECT"),
+            ("vpv_optionsQuestion",      "SELECT"),
+            ("vpv_BlindTokens",          "INSERT"),
+            ("vpv_VotesTaken",           "SELECT"),
+            ("vpv_VotesTaken",           "INSERT"),
+            ("vpv_Votes",                "INSERT"),
+            ("vpv_voteValues",           "INSERT"),
+        ]
 
-        # 2) Verificar SELECT sobre vpv_encryptionkeys
-        if not user_can(user_id, "vpv_encryptionkeys", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_encryptionkeys", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 3) Verificar SELECT sobre vpv_proposals
-        if not user_can(user_id, "vpv_proposals", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_proposals", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 4) Verificar SELECT sobre vpv_proposalVersions
-        if not user_can(user_id, "vpv_proposalVersions", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_proposalVersions", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 5) Verificar SELECT sobre vpv_PopulationFilters
-        if not user_can(user_id, "vpv_PopulationFilters", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_PopulationFilters", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 6) Verificar SELECT sobre vpv_TargetPopulations
-        if not user_can(user_id, "vpv_TargetPopulations", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_TargetPopulations", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 7) Verificar SELECT sobre vpv_TargetPopulationsVoting
-        if not user_can(user_id, "vpv_TargetPopulationsVoting", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_TargetPopulationsVoting", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 8) Verificar SELECT sobre vpv_FilterTypes
-        if not user_can(user_id, "vpv_FilterTypes", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_FilterTypes", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 9) Verificar SELECT sobre vpv_demographics
-        if not user_can(user_id, "vpv_demographics", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_demographics", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 10) Verificar SELECT sobre vpv_votingQuestions
-        if not user_can(user_id, "vpv_votingQuestions", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_votingQuestions", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 11) Verificar SELECT sobre vpv_optionsQuestion
-        if not user_can(user_id, "vpv_optionsQuestion", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_optionsQuestion", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 12) Verificar INSERT sobre vpv_BlindTokens
-        if not user_can(user_id, "vpv_BlindTokens", "INSERT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_BlindTokens", "accion": "INSERT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-
-        # 13) Verificar SELECT sobre vpv_VotesTaken
-        if not user_can(user_id, "vpv_VotesTaken", "SELECT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_VotesTaken", "accion": "SELECT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 14) Verificar INSERT sobre vpv_VotesTaken
-        if not user_can(user_id, "vpv_VotesTaken", "INSERT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_VotesTaken", "accion": "INSERT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 15) Verificar INSERT sobre vpv_Votes
-        if not user_can(user_id, "vpv_Votes", "INSERT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_Votes", "accion": "INSERT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
-
-        # 16) Verificar INSERT sobre vpv_voteValues
-        if not user_can(user_id, "vpv_voteValues", "INSERT"):
-            return func.HttpResponse(
-                json.dumps({"error": "Sin permiso sobre el recurso", "recurso": "vpv_voteValues", "accion": "INSERT"}, ensure_ascii=False),
-                status_code=200,
-                mimetype="application/json"
-            )
+        for recurso, accion in permisos:
+            # Iteramos y verificamos cada permiso con user_can()
+            if not user_can(user_id, recurso, accion):
+                body = {
+                    "error":  "Sin permiso sobre el recurso",
+                    "recurso": recurso,
+                    "accion":  accion
+                }
+                return func.HttpResponse(
+                    json.dumps(body, ensure_ascii=False),
+                    status_code=200,
+                    mimetype="application/json"
+                )
     except Exception as e:
         logging.error(f"Error al verificar permiso: {e}")
         return func.HttpResponse(f"Error interno: {e}", status_code=500)
-
 
 
     ###############################################
     ## 5) Obtener preguntas y opciones filtradas ##
     ###############################################
     try:
+        # Llamamos al helper que lee preguntas desde JSON y tablas
         resultado = obtener_preguntas_por_nombre(
             user_id=user_id,
             proposal_name=proposal_name,
             version_name=version_name,
             votos_list=votos_list
         )
+        # Extraemos IDs y lista de votos ya validados y mapeados que necesitamos para otras funciones
         proposalId = resultado["proposalId"]
         proposalVersionId = resultado["proposalVersionId"]
         votos = resultado["votos"]
@@ -5308,6 +5237,7 @@ def votar(req: func.HttpRequest) -> func.HttpResponse:
     ## 6) Verificar ventana de votación ##
     ######################################
     try:
+        # Comprobamos que la fecha esté dentro del rango definido en la configuracion de votacion
         if not is_date_within_voting_window(proposalVersionId, date_to_check):
             return func.HttpResponse(
                 json.dumps({"puede": "No", "error": "Fuera de rango de votación"}, ensure_ascii=False),
@@ -5324,13 +5254,15 @@ def votar(req: func.HttpRequest) -> func.HttpResponse:
     ######################################################################
     try:
         with SessionLocal() as session:
+            # Buscamos el primer Voter asociado al usuario
             voter = (
                 session.query(Voter)
-                       .filter(Voter.idUser == user_id)
+                       .filter(Voter.idUser == user_id) # buscamos el que haga match con user_id
                        .order_by(Voter.idVoter)
-                       .first()
+                       .first() # y tomamos el primero
             )
             if not voter:
+                # si no se encuentra un voter
                 return func.HttpResponse(
                     json.dumps({"error": f"No se encontró voter para user_id {user_id}"}),
                     status_code=400,
@@ -5345,28 +5277,31 @@ def votar(req: func.HttpRequest) -> func.HttpResponse:
     ###############################
     ## 8) Generar un nuevo token ##
     ###############################
+    # Generamos un blind token único para esta sesión de votación
     new_token = generate_blind_token()
 
 
     ###########################################################
     ## 9) Llamar a la función auxiliar que inserta los votos ##
     ###########################################################
+    # con los datos obtenidos en obtener_preguntas_por_nombre procedemos a insertar los votos
     try:
         insert_votes(
             user_id=user_id,
             id_token=new_token,
             id_voter=id_voter,
-            votos=votos,
+            votos=votos, # la lista de ids y votos
             password=password
         )
-    except Exception as e:
+    except Exception as e: # en caso de que falle lanzamos un error
         logging.error(f"Error al insertar votos: {e}")
+        # Devolvemos el mensaje de error capturado
         return func.HttpResponse(
             json.dumps({"error": str(e)}, ensure_ascii=False),
             status_code=500,
             mimetype="application/json"
         )
-
+    # Marcamos el blind token como ya usado
     mark_token_used(new_token)
     
     return func.HttpResponse(
@@ -5385,6 +5320,7 @@ def votar(req: func.HttpRequest) -> func.HttpResponse:
 	<summary>Ver obtenerIdUser</summary>
 
  ```python
+
 import os
 from sqlalchemy import select, text
 from database import SessionLocal
@@ -5420,66 +5356,162 @@ def obtenerIdUser(cedula_clara):
         finally:
             # Siempre cerrar la clave aunque haya error
             session.execute(text("CLOSE SYMMETRIC KEY llavecedula;"))
+    
+
+
 ```
 </details>
+
+
+<details>
+	<summary>Ver validar_permiso</summary>
+
+ ```python
+
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+import os #utilizado para variables de entorno
+from dotenv import load_dotenv
+
+
+# Carga las variables del .env
+load_dotenv()
+#variables de entorno
+clave = os.getenv("CLAVECEDULA")
+
+"""
+    Valida si un usuario tiene un rol específico consultando el procedimiento almacenado 'vpvSP_UserHasRole'.
+
+    Parámetros:
+    - session: objeto de sesión de SQLAlchemy para ejecutar consultas en la base de datos.
+    - idUsuario: ID del usuario a validar.
+    - roleName: Nombre del rol que se desea verificar.
+
+    Funcionamiento:
+    Ejecuta el procedimiento almacenado que retorna un valor BIT (0 o 1) en el parámetro OUTPUT @HasRole.
+    Si el valor es NULL o 0, se lanza una excepción PermissionError indicando que el usuario no tiene el rol necesario.
+    Cualquier error de base de datos se propaga como excepción para ser manejado externamente.
+    """
+
+def validar_permiso(session, idCard, roleName):
+    try: 
+        #id usuario que fue encontrado para validar el permiso
+        idUsuario = None;
+
+        #abro la llave para desencriptar las cedulas
+        sql = f"OPEN SYMMETRIC KEY llavecedula DECRYPTION BY PASSWORD = '{clave}'"
+        session.execute(text(sql))
+
+        # Obtengo el objeto identificado
+        result = session.execute(text("""
+            SELECT idUser
+            FROM vpv_Users
+            WHERE enable = 1
+            AND CONVERT(nvarchar(50), DECRYPTBYKEY(id_card)) = :idCard
+        """), {'idCard': idCard})
+
+        # Obtener el primer resultado
+        row = result.fetchone()
+        idUsuario = row[0] if row else None
+
+        
+        if not idUsuario:
+            raise ValueError(f"No se encontró el usuario a realizar la configuracion: {idCard}, o el mismo no esta activo")
+
+        #creo que query que va a ser ejecutado, esto por medio de sqlalchemy
+        sql = text("""
+            DECLARE @hasRole BIT;
+            EXEC dbo.vpvSP_UserHasRole
+                @idUser = :idUsuario,
+                @roleName = :roleName,
+                @HasRole = @hasRole OUTPUT;
+            SELECT @hasRole AS hasRole;
+        """)
+        #ejecucion del query utilizando la sesion enviada y creada
+        result = session.execute(sql, {"idUsuario": idUsuario, "roleName": roleName})
+        has_role_row = result.fetchone()
+        has_role = has_role_row[0] if has_role_row else None
+
+
+        if has_role is None or has_role == 0:
+            raise PermissionError(f"El usuario no tiene el rol necesario: {roleName}")
+
+    except SQLAlchemyError as e:
+        # Maneja errores de BD si quieres
+        raise e
+
+
+```
+
+</details>
+
 
 <details>
 	<summary>Ver user_can</summary>
 
-```python
-from sqlalchemy import select
-from database import SessionLocal
-from Models.votar.models import (
+ ```python
+
+from sqlalchemy import select                          
+from database import SessionLocal                       
+from Models.votar.models import (                        
     User, PermissionResource, PermissionAction, Permission, 
     UserRole, RolePermission
 )
 
 def user_can(id_user: int, resource_name: str, action_name: str) -> bool:
-    with SessionLocal() as session:
+    with SessionLocal() as session:                      # abre una nueva sesion con la base de datos
         # 1) Usuario activo
-        user = session.get(User, id_user)
-        if not user or not user.enable or user.deleted:
-            return False
+        user = session.get(User, id_user)                # Intenta cargar el usuario por su PK
+        if not user or not user.enable or user.deleted:  # Si no existe, esta deshabilitado o marcado como eliminado
+            return False                              
 
-        # 2) Resource & Action
-        resource = session.scalar(
+        # 2) Resource y Action
+        resource = session.scalar(                        # Busca el recurso por nombre en la tabla PermissionResource
             select(PermissionResource)
             .where(
                 PermissionResource.name == resource_name,
-                PermissionResource.enabled == True,
-                PermissionResource.deleted == False
+                PermissionResource.enabled == True,      # Asegura que el recurso este activo
+                PermissionResource.deleted == False      # Asegura que no este marcado como eliminado
             )
         )
-        action = session.scalar(
+        action = session.scalar(                          # Busca la acción SELECT/INSERT/UPDATE/DELETE por nombre
             select(PermissionAction)
             .where(PermissionAction.name == action_name)
         )
-        if not resource or not action:
-            return False
+        if not resource or not action:                    # Si no encontro recurso o accion vzlida
+            return False                              
 
         # 3) Permiso
-        stmt = (
+        stmt = (                                         # Construye la query para verificar permiso efectivo
             select(Permission)
-            .join(RolePermission, RolePermission.id_permission == Permission.id_permission)
-            .join(UserRole, UserRole.id_role == RolePermission.id_role)
+            .join(RolePermission,                        # Une Permission con RolePermission
+                  RolePermission.id_permission == Permission.id_permission)
+            .join(UserRole,                              # Une RolePermission con UserRole
+                  UserRole.id_role == RolePermission.id_role)
             .where(
-                UserRole.idUser == id_user,
-                UserRole.enabled == True,
-                UserRole.deleted == False,
-                Permission.id_permisionResource == resource.id_permissionResource,
-                Permission.id_permissionAction == action.id_permissionAction,
-                Permission.enabled == True,
-                Permission.deleted == False
+                UserRole.idUser == id_user,                  # Filtra por este usuario
+                UserRole.enabled == True,                     # Rol habilitado
+                UserRole.deleted == False,                    # Rol no eliminado
+                Permission.id_permisionResource == resource.id_permissionResource,  # Coincide recurso
+                Permission.id_permissionAction == action.id_permissionAction,       # Coincide acción
+                Permission.enabled == True,                     # Permiso habilitado
+                Permission.deleted == False                     # Permiso no eliminado
             )
         )
-        return session.scalar(stmt) is not None
+        return session.scalar(stmt) is not None          # Ejecuta la query y devuelve True si encontro al menos un registro
+
+
 ```
+
 </details>
+
+
 
 <details>
 	<summary>Ver obtener_preguntas_por_nombre</summary>
 
  ```python
+
 from sqlalchemy import select, and_
 from database import SessionLocal
 from Models.votar.models import (
@@ -5490,34 +5522,38 @@ from Models.votar.models import (
 )
 
  
-def obtener_preguntas_por_nombre(user_id: int,
-                                 proposal_name: str,
-                                 version_name: str,
-                                 votos_list: list[dict]):
+def obtener_preguntas_por_nombre(user_id: int, proposal_name: str, version_name: str, votos_list: list[dict]):
     with SessionLocal() as session:
-        # 1) Propuesta
+        # 1) buscar Propuesta
+        #    Hacemos un SELECT en la tabla de propuestas filtrando por titulo.
         prop = session.query(Proposal).filter(
             Proposal.tittle == proposal_name
         ).first()
         if not prop:
+            # Si no existe ninguna propuesta con ese nombre, detenemos todo aqui.
             raise Exception(f'Propuesta "{proposal_name}" no encontrada.')
 
-        # 2) Versión
+        # 2) buscar Version
+        #    Con el ID de propuesta, buscamos su version específica por título.
         pv = session.query(ProposalVersion).filter(
             ProposalVersion.proposalId == prop.proposalId,
             ProposalVersion.tittle    == version_name
         ).first()
         if not pv:
+            # De nuevo, si no existe, lanzamos excepcion.
             raise Exception(f'Versión "{version_name}" no encontrada.')
 
-        # 3) Configuración de votación
+        # 3) obtener Configuración de votación
+        #    Cada version puede tener una configuracion de votacion asociada.
         vc = session.query(VotingConfiguration).filter(
             VotingConfiguration.proposalVersionId == pv.proposalVersionId
         ).first()
         if not vc:
             raise Exception(f'No hay configuración de votación para la versión "{version_name}".')
 
-        # 4) Filtros demográficos (sin usar relaciones)
+        # 4) aplicar filtros demograficos
+        #    - Primero obtenemos todos los PopulationFilter vinculados a esta config.
+        #    - Luego, para cada filtro, validamos que el usuario cumpla el requisito en vpv_demographics.
         filtros = (
             session.query(PopulationFilter)
                    .join(TargetPopulation,
@@ -5526,37 +5562,40 @@ def obtener_preguntas_por_nombre(user_id: int,
                          TargetPopulation.idTargetPopulation == TargetPopulationsVoting.idTargetPopulation)
                    .filter(TargetPopulationsVoting.idVotingConfig == vc.idVotingConfig)
                    .all()
-        )
+        ) # aqui validamos que el usuario cumple los filtros
         for pf in filtros:
             ft = session.query(FilterType).filter(
-                FilterType.idFilterType == pf.idFilterType
+                FilterType.idFilterType == pf.idFilterType # comparamos el el idfiltertype de filtertype y de populationfilter
             ).first()
             match = session.query(Demographic).filter(
                 and_(
-                    Demographic.userid     == user_id,
-                    Demographic.demotypeid == ft.demotypeid
+                    Demographic.userid     == user_id, # obtenemos la demografias del usuario
+                    Demographic.demotypeid == ft.demotypeid # y comparamos los demotype del usuario y de filtertype
                 )
             ).first()
             if not match:
                 raise Exception(f"Usuario {user_id} no cumple filtro demográfico {pf.idPopulationFilter}-{ft.name}.")
 
         # 5) Cargar preguntas uniendo explícitamente con la tabla vpv_questions
+        #    Unimos VotingQuestion con Question para traer también la descripción textual.
         preguntas = session.query(
-            VotingQuestion.idVotingQuestions,
-            VotingQuestion.idQuestion,
-            VotingQuestion.idVotingConfig,
-            Question.description.label("question_text")
+            VotingQuestion.idVotingQuestions, # obtenemos el idvotingquestion
+            VotingQuestion.idQuestion, # el idquestion
+            VotingQuestion.idVotingConfig, # el idvotingconfig
+            Question.description.label("question_text") # y la pregunta textual
         ).join(
             Question,
-            VotingQuestion.idQuestion == Question.idQuestion
+            VotingQuestion.idQuestion == Question.idQuestion # unimos question y votingquestion en idquestion
         ).filter(
-            VotingQuestion.idVotingConfig == vc.idVotingConfig,
+            VotingQuestion.idVotingConfig == vc.idVotingConfig, # donde votingquestion tengo el mismo id que el votingconfig
             VotingQuestion.enable == True
         ).order_by(VotingQuestion.orderBy).all()
 
         # 6) Indexar preguntas por texto
+        #    Clave: texto de la pregunta → Valor: objeto con sus IDs.
         mapa = { q.question_text: q for q in preguntas }
 
+        # Estructura inicial de resultado
         resultados = {
             "proposalId":          prop.proposalId,
             "proposalVersionId":   pv.proposalVersionId,
@@ -5564,44 +5603,49 @@ def obtener_preguntas_por_nombre(user_id: int,
             "proposalVersionName": pv.tittle,
             "votos": []
         }
-
+        
+        # 7) POR CADA VOTO ENTRANTE:
         for voto in votos_list:
-            q_text = voto["question"]
-            o_text = voto["voto"]
-            q = mapa.get(q_text)
+            q_text = voto["question"] # texto de pregunta que vino en el JSON
+            o_text = voto["voto"] # texto de opción que vino en el JSON
+            q = mapa.get(q_text) # buscamos el objeto pregunta por ese texto
             if not q:
                 raise Exception(f'Pregunta "{q_text}" no encontrada.')
 
             # 7) Cargar opciones de esta pregunta (sin relaciones)
             opciones = session.query(
-                OptionQuestion.idOptionQuestion,
-                OptionQuestion.description.label("opt_text")
+                OptionQuestion.idOptionQuestion, # toma el id de option question
+                OptionQuestion.description.label("opt_text") # toma el description de optioinquestion y lo llame opt_text
             ).filter(
-                OptionQuestion.idQuestions == q.idQuestion,
+                OptionQuestion.idQuestions == q.idQuestion, # donde optionquestion y question tiene igual idquestion
                 OptionQuestion.enable == True
             ).all()
 
             # 8) Buscar match por descripción
-            opt = next((o for o in opciones if o.opt_text == o_text), None)
+            opt = next((o for o in opciones if o.opt_text == o_text), None) # elige el optionquestion cuya descripcion es igual al valor del voto del usuario
             if not opt:
                 raise Exception(f'Opción "{o_text}" "{opt}" no válida para la pregunta "{q_text}".')
 
             resultados["votos"].append({
-                "questionId":     q.idVotingQuestions,
+                "questionId":     q.idVotingQuestions, # adjunta a 'votos' los siguientes ids y valor de voto
                 "votingConfigId": q.idVotingConfig,
                 "optionId":       opt.idOptionQuestion,
                 "voto":           o_text
             })
 
-        return resultados
+        return resultados # retorna el diccionario con los id de proposal, version, sus titulo, y un arreglo de los ids anteriores.
  
+  
 ```
 </details>
+
+
 
 <details>
 	<summary>Ver is_date_within_voting_window</summary>
 
  ```python
+
 from datetime import datetime
 from sqlalchemy import select
 from database import SessionLocal
@@ -5616,8 +5660,8 @@ def is_date_within_voting_window(proposal_version_id: int, date_to_check: dateti
     """
     with SessionLocal() as session:
         stmt = (
-            select(VotingConfiguration.openDate, VotingConfiguration.closeDate)
-            .where(VotingConfiguration.proposalVersionId == proposal_version_id)
+            select(VotingConfiguration.openDate, VotingConfiguration.closeDate)  # toma las fechas de apertura y de cierre
+            .where(VotingConfiguration.proposalVersionId == proposal_version_id) # donde voting config tenga el mismo version id
         )
         row = session.execute(stmt).first()
         if not row:
@@ -5625,15 +5669,59 @@ def is_date_within_voting_window(proposal_version_id: int, date_to_check: dateti
             return False
 
         open_dt, close_dt = row.openDate, row.closeDate
-        return open_dt <= date_to_check <= close_dt
-    
+        return open_dt <= date_to_check <= close_dt # checa que la fecha en que se vota este en el medio
+        
 ```
 </details>
+
+
+<details>
+	<summary>Ver generate_blind_token</summary>
+
+ ```python
+
+import uuid
+import hashlib
+
+from database import SessionLocal
+from Models.votar.models import BlindToken
+
+
+
+def generate_blind_token() -> str:
+    """
+    Crea un nuevo registro en vpv_BlindTokens y devuelve el UUID generado (como cadena).
+    """
+    # 1) Generar el UUID de cliente
+    new_uuid = uuid.uuid4()
+
+    # 2) Calcular checksum (por ejemplo SHA‑256 del UUID + timestamp)
+    checksum_input = f"{new_uuid}{uuid.uuid1().time}".encode("utf-8")
+    checksum = hashlib.sha256(checksum_input).digest()
+
+    # 3) Insertar en la base de datos
+    with SessionLocal() as session: 
+        token = BlindToken(
+            idToken=new_uuid, # hace un insert a blind token
+            used=False,
+            checksum=checksum
+        )
+        session.add(token)
+        session.commit()
+
+    # 4) Devolver el UUID como string
+    return str(new_uuid) # devuelve el nuevo token
+
+```
+
+</details>
+
 
 <details>
 	<summary>Ver insert_votes</summary>
 
  ```python
+
 import uuid
 import hashlib
 import socket
@@ -5647,11 +5735,8 @@ from Models.votar.models import (
 from helpers.votar.hasUserVoted import hasUserVoted
 from helpers.votar.insertLogs import insertLog
 from helpers.votar.updateVoteCount import updateVoteCount
-from helpers.votar.sumarizeResults import summarizeResults
 from helpers.votar.get_key_name import get_key_name
-from helpers.votar.get_votes_id import get_next_vote_id, get_next_votes_taken_id, get_next_vote_value_id
 from helpers.votar.encrypt_with_user_key import encrypt_with_user_key
-
 
 
 
@@ -5661,7 +5746,9 @@ def insert_votes(user_id: int, id_token: uuid.UUID, id_voter: int, votos: list, 
     Encripta los valores de voto usando encrypt_with_user_key.
     Además loggea cada paso crítico.
     """
+    # Obtener el nombre de la llave asociada al usuario
     key_name = get_key_name(user_id)
+    # Si no existe llave, registrar error y abortar
     if not key_name:
         insertLog(
             description=f"No se encontró llave habilitada para user_id {user_id}",
@@ -5678,9 +5765,9 @@ def insert_votes(user_id: int, id_token: uuid.UUID, id_voter: int, votos: list, 
         try:
             # 1) Marcar cada pregunta como votada
             for v in votos:
-                qid     = v["questionId"]
-                qName   = v.get("questionName", str(qid))
-                if hasUserVoted(user_id, qid):
+                qid     = v["questionId"] # ID de la pregunta
+                qName   = v.get("questionName", str(qid)) # Nombre de la pregunta 
+                if hasUserVoted(user_id, qid): # Verificar si el usuario ya votó esta pregunta
                     insertLog(
                         description=f"Intento múltiple de voto para pregunta {qName}",
                         computer=socket.gethostname(),
@@ -5693,15 +5780,17 @@ def insert_votes(user_id: int, id_token: uuid.UUID, id_voter: int, votos: list, 
                     )
                     raise Exception(f"El usuario ya voto a esta pregunta: {qName}")
 
+                # Crear registro de VotesTaken para bloquear la pregunta, asi el usuario no podra volver a votar por la misma pregunta
                 taken = VotesTaken(
                     idUser=user_id,
                     idVotingQuestions=qid,
                     checksum=hashlib.sha256(f"{user_id}_{qid}".encode()).digest()
                 )
-                session.add(taken)
+                session.add(taken) 
 
-            session.flush()
+            session.flush() # Enviar los INSERT de VotesTaken antes de continuar
 
+            # Loguear que se marcaron las preguntas como tomadas
             insertLog(
                 description="Se marcaron preguntas como tomadas",
                 computer=socket.gethostname(),
@@ -5715,11 +5804,12 @@ def insert_votes(user_id: int, id_token: uuid.UUID, id_voter: int, votos: list, 
 
             # 2) Insertar cada voto y su valor cifrado
             for v in votos:
-                qid = v["questionId"]
-                votingConfigId = v["votingConfigId"]
-                oid = v["optionId"]
-                rv  = v["voto"]
+                qid = v["questionId"] # ID de la pregunta
+                votingConfigId = v["votingConfigId"] # ID de la configuración de votación
+                oid = v["optionId"] # ID de la opción elegida
+                rv  = v["voto"] # Valor crudo del voto
 
+                # Crear objeto Vote (metadatos del voto)
                 vote = Vote(
                     idVotingQuestion=qid,
                     idVotingConfig=votingConfigId,
@@ -5731,26 +5821,30 @@ def insert_votes(user_id: int, id_token: uuid.UUID, id_voter: int, votos: list, 
                 session.add(vote)
                 session.flush()  # para obtener vote.idVote
 
+                # Cifrar el valor del voto
                 encrypted = encrypt_with_user_key(
                     user_id=user_id,
                     key_name=key_name,
                     password=password,
                     texto_a_encriptar=rv
                 )
+                # Crear objeto VoteValue con el valor cifrado
                 vv = VoteValue(
                     idVote=vote.idVote,
                     value1=encrypted,
-                    value2=b"",
+                    value2=b"", # Reservado para una segunda parte si se necesitara
                     checksum=hashlib.sha256(encrypted).digest()
                 )
                 session.add(vv)
                 
+                # Actualizar el conteo agregado en la tabla de resultados
                 updateVoteCount(
                     voting_config_id = votingConfigId,
                     question_id      = qid,
                     option_id        = oid
                 )
-
+ 
+                # Loguear la inserción de cada voto
                 insertLog(
                     description=f"Registro de voto para pregunta {qid}, opción {oid}",
                     computer=socket.gethostname(),
@@ -5764,10 +5858,9 @@ def insert_votes(user_id: int, id_token: uuid.UUID, id_voter: int, votos: list, 
                     type_name="Audit",
                 )
 
-            session.commit()
+            session.commit() # Confirmar todos los cambios en BD
             
-            summarizeResults(votingConfigId)
-
+            # Log final de confirmación de todos los votos
             insertLog(
                 description="Todos los votos insertados correctamente",
                 computer=socket.gethostname(),
@@ -5779,7 +5872,7 @@ def insert_votes(user_id: int, id_token: uuid.UUID, id_voter: int, votos: list, 
                 type_name="Audit",
             )
         except Exception as e:
-            session.rollback()
+            session.rollback() # Deshacer en caso de error
             insertLog(
                 description="Error al insertar votos",
                 computer=socket.gethostname(),
@@ -5792,123 +5885,200 @@ def insert_votes(user_id: int, id_token: uuid.UUID, id_voter: int, votos: list, 
             )
             # relanzamos para que lo capture la capa superior
             raise        
-      
+            
 ```
 </details>
 
+
+
 <details>
-	<summary>Ver summarizeResults</summary>
+	<summary>Ver get_key_name</summary>
 	
 ```python
-from sqlalchemy import func, case, DECIMAL, literal_column
-import hashlib
+
 from database import SessionLocal
-from Models.votar.models import Vote, VoteValue, OptionQuestion, VotingQuestion, ResultsPerOption
+from Models.votar.models import EncryptionKey
 
-def summarizeResults(voting_config_id: int):
+def get_key_name(user_id: int) -> str | None:
     """
-    Recorre todas las preguntas de una configuración de votación y
-    genera/actualiza los resultados en vpv_ResultsPerOption.
+    Recupera el nombre de la llave simetrica activa mas reciente para el usuario dado.
+    Retorna el campo `key` si existe, o None en caso contrario.
     """
+    # abrir contexto de sesión con la base de datos
     with SessionLocal() as session:
-        # 1) Subconsulta para totales por pregunta
-        total_subq = (
-            session.query(
-                Vote.idVotingQuestion.label('qid'),
-                func.count(Vote.idVote).label('total')
-            )
-            .group_by(Vote.idVotingQuestion)
-            .subquery()
+        # query: buscar en la tabla EncryptionKey el registro mas reciente habilitado para el user_id
+        key_entry = (
+            session.query(EncryptionKey)
+                   .filter(
+                       EncryptionKey.userid == user_id,  # coincidir con el id de usuario
+                       EncryptionKey.enable == True      # solo llaves marcadas como enable=True
+                   )
+                   .order_by(EncryptionKey.creationDate.desc())  # ordenar por fecha de creacin descendente
+                   .first()  # tomar únicamente el primer resultado (la llave mas reciente)
         )
+    # si encontramos un registro, devolvemos su nombre de llave
+    if key_entry:
+        return key_entry.key
+    # si no hay ninguna llave habilitada, retornamos None
+    return None
 
-        # 2) Agregaciones por opción (sin avg sobre value1)
-        stmt = (
-            session.query(
-                OptionQuestion.idOptionQuestion,
-                OptionQuestion.idQuestions,
-                func.count(Vote.idVote).label('cnt'),
-                (func.count(Vote.idVote) * 100.0
-                    / func.nullif(total_subq.c.total, 0)
-                ).label('pct'),
-                case(
-                    (func.count(Vote.idVote)
-                        == func.max(func.count(Vote.idVote))
-                               .over(partition_by=OptionQuestion.idQuestions),
-                     True),
-                    else_=False
-                ).label('is_winner'),
-                # avg_val siempre Null por ahora
-                literal_column("NULL").label('avg_val')
-            )
-            .join(Vote,      Vote.idOptionQuestion == OptionQuestion.idOptionQuestion)
-            .join(VoteValue, VoteValue.idVote       == Vote.idVote)
-            .join(total_subq, total_subq.c.qid      == OptionQuestion.idQuestions)
-            .join(VotingQuestion,
-                  VotingQuestion.idQuestion == OptionQuestion.idQuestions)
-            .filter(OptionQuestion.enable == True)
-            .filter(VotingQuestion.idVotingConfig == voting_config_id)
-            .group_by(
-                OptionQuestion.idOptionQuestion,
-                OptionQuestion.idQuestions,
-                total_subq.c.total
-            )
-        )
-
-        # 3) Upsert en ResultsPerOption
-        for opt_id, q_id, cnt, pct, is_win, avg_val in session.execute(stmt):
-            source = f"{voting_config_id}|{q_id}|{opt_id}|{cnt}|{pct:.2f}|{int(is_win)}|"
-            chks = hashlib.sha256(source.encode("utf-8")).digest()
-
-            existing = session.query(ResultsPerOption).filter_by(
-                idVotingConfig    = voting_config_id,
-                idVotingQuestions = q_id,
-                idOptionQuestion  = opt_id
-            ).one_or_none()
-
-            if existing:
-                existing.votesCount      = cnt
-                existing.votesPercentage = round(pct or 0, 2)
-                existing.winner          = is_win
-                existing.average         = None
-                existing.checksum        = chks
-            else:
-                new_row = ResultsPerOption(
-                    idVotingConfig    = voting_config_id,
-                    idVotingQuestions = q_id,
-                    idOptionQuestion  = opt_id,
-                    votesCount        = cnt,
-                    votesPercentage   = round(pct or 0, 2),
-                    winner            = is_win,
-                    average           = None,
-                    checksum          = chks,
-                    enable            = True,
-                    creationDate      = func.now()
-                )
-                session.add(new_row)
-
-        session.commit()
-	
 ```
  
 </details>
+
+
+<details>
+	<summary>Ver insert_logs</summary>
+
+
+```python
+
+from datetime import datetime
+from sqlalchemy import select
+from database import SessionLocal
+from Models.votar.logs import Log, LogType, LogSource, LogSeverity
+import hashlib
+
+
+def insertLog(description: str,
+               computer: str,
+               username: str,
+               trace: str,
+               reference1: str = None,
+               reference2: str = None,
+               value1: str = None,
+               value2: str = None,
+               severity_name: str = 'Informational',
+               source_name: str = 'Application',
+               type_name: str = 'Info') -> Log:
+    """
+    Inserta un registro en vpv_logs. Busca o crea severidad, fuente y tipo.
+    Retorna la instancia Log creada.
+    """
+    
+    MAX_LEN = 300
+    # Recorta los strings largos
+    reference1 = reference1[:MAX_LEN] if reference1 else None
+    reference2 = reference2[:MAX_LEN] if reference2 else None
+    # aquí el recorte crucial:
+    value1 = value1[:MAX_LEN] if value1 else None
+    value2 = value2[:MAX_LEN] if value2 else None
+    
+    # abre un contexto de sesión para operar en la BDD
+    with SessionLocal() as session:
+        # 1) buscar  LogSeverity
+        sev = session.execute(
+            select(LogSeverity).where(LogSeverity.name == severity_name)
+        ).scalars().first()                # obtiene la fila si existe
+        if not sev:                        # si no existe, la crea
+            sev = LogSeverity(name=severity_name)
+            session.add(sev)
+            session.flush()               
+
+        # 2) Buscar  LogSource
+        src = session.execute(
+            select(LogSource).where(LogSource.name == source_name)
+        ).scalars().first()
+        if not src:
+            src = LogSource(name=source_name)
+            session.add(src)
+            session.flush()              
+
+        # 3) Buscar  LogType
+        typ = session.execute(
+            select(LogType).where(LogType.name == type_name)
+        ).scalars().first()
+        if not typ:
+            typ = LogType(name=type_name)
+            session.add(typ)
+            session.flush()                
+
+        # 4) Calcular checksum SHA-256 de la concatenación de los campos relevantes
+        data = '|'.join(filter(None, [
+                        description, computer, username, trace,
+                        reference1, reference2, value1, value2]))
+        checksum = hashlib.sha256(data.encode('utf-8')).digest()
+
+        # 5) Construir la nueva instancia Log
+
+        log = Log(
+            description=description,
+            computer=computer,
+            username=username,
+            trace=trace,
+            referenceId1=reference1,
+            referenceId2=reference2,
+            value1=value1,
+            value2=value2,
+            chechsum=checksum,
+            logSeverityId=sev.logSeverityId,
+            logSourceId=src.logSourceId,
+            logTypeId=typ.logTypeId
+        )
+        session.add(log)
+        session.flush()
+        return log
+
+
+```
+
+</details>
+
+
+<details>
+	<summary>Ver hasUserVoted</summary>
+
+ ```python
+
+from database import SessionLocal  
+from Models.votar.models import VotesTaken
+
+def hasUserVoted(user_id: int, question_id: int) -> bool:
+    """
+    Retorna True si el usuario `user_id` ya tiene un registro en vpv_VotesTaken
+    para la pregunta `question_id`, o False en caso contrario.
+    """
+    # abre un contexto de sesion con la base de datos
+    with SessionLocal() as session:
+        # ejecuta una consulta sobre la tabla VotesTaken:
+        # filtra por el campo idUser igual a user_id
+        # y por el campo idVotingQuestions igual a question_id
+        exists = session.query(VotesTaken).filter(
+            VotesTaken.idUser == user_id,
+            VotesTaken.idVotingQuestions == question_id
+        ).first()  # obtiene el primer registro que coincida, o None si no hay ninguno
+        
+        # Si `exists` no es None, significa que ya existe un voto registrado,
+        # por lo que retorna True; de lo contrario, retorna False.
+        return exists is not None
+
+
+
+```
+
+</details>
+
+
+
 
 <details>
 	<summary>Ver updateVoteCount</summary>
 
 ```python
+
 from sqlalchemy import func
 from Models.votar.models import ResultsPerOption, Vote
 from database import SessionLocal
 
 def updateVoteCount(voting_config_id: int, question_id: int, option_id: int):
     """
-    Al llegar un nuevo voto para (voting_config_id, question_id, option_id):
-    1) Incrementa en 1 el votesCount del registro de ResultsPerOption correspondiente.
-       Si no existe, lo crea con votesCount=1.
-    2) Recalcula votos totales para esa pregunta/config, porcentaje y marca al ganador.
+    al llegar un nuevo voto para (voting_config_id, question_id, option_id):
+    1) incrementa en 1 el votesCount del registro de ResultsPerOption correspondiente.
+       si no existe, lo crea con votesCount=1.
+    2) recalcula votos totales para esa pregunta/config, porcentaje y marca al ganador.
     """
     with SessionLocal() as session:
-        # 1) UPD or INS: incrementar votesCount
+        # intento de bloqueo de fila para update o insert
         rpo = (
             session.query(ResultsPerOption)
                    .filter_by(
@@ -5916,29 +6086,30 @@ def updateVoteCount(voting_config_id: int, question_id: int, option_id: int):
                        idVotingQuestions=question_id,
                        idOptionQuestion=option_id
                    )
-                   .with_for_update()
+                   .with_for_update()  # bloquea fila para evitar race conditions
                    .first()
         )
         if rpo:
+            # si ya existe el registro, se incrementa el contador de votos
             rpo.votesCount += 1
         else:
-            # crear nuevo registro
+            # si no existe, se crea uno nuevo con votesCount = 1
             rpo = ResultsPerOption(
                 idVotingConfig     = voting_config_id,
                 idVotingQuestions  = question_id,
                 idOptionQuestion   = option_id,
                 votesCount         = 1,
-                votesPercentage    = 0,    # rellenamos más abajo
+                votesPercentage    = 0,    # se rellenara despues
                 winner             = False,
                 enable             = True,
-                creationDate       = func.getdate(),
-                checksum           = b"",  # o calcula uno
-                average            = None
+                creationDate       = func.getdate(),  # fecha de creacion actual
+                checksum           = b"",  # se podria calcular un checksum real
+                average            = None   # sin promedio aun
             )
             session.add(rpo)
-        session.flush()
+        session.flush()  # aplica los cambios para que existan en la sesion
 
-        # 2) Recalcular totales para esa pregunta/config
+        # calcular el total de votos para esta pregunta y config
         total_votes = (
             session.query(func.sum(ResultsPerOption.votesCount))
                    .filter_by(
@@ -5946,10 +6117,9 @@ def updateVoteCount(voting_config_id: int, question_id: int, option_id: int):
                        idVotingQuestions = question_id
                    )
                    .scalar()
-        ) or 0
+        ) or 0  # si es None, usar 0
 
-        # 3) Actualizar porcentaje y marcar ganador
-        #    Asumimos único ganador: la opción con max(votesCount)
+        # obtener el maximo de votesCount entre opciones para definir ganador
         max_votes = (
             session.query(func.max(ResultsPerOption.votesCount))
                    .filter_by(
@@ -5959,14 +6129,14 @@ def updateVoteCount(voting_config_id: int, question_id: int, option_id: int):
                    .scalar()
         ) or 0
 
-        # Primero, desmarca todos
+        # primero, desmarcar todos como no ganadores
         session.query(ResultsPerOption) \
                .filter_by(
                    idVotingConfig    = voting_config_id,
                    idVotingQuestions = question_id
                ).update({ResultsPerOption.winner: False})
 
-        # Ahora recorre cada opción y fija porcentaje y ganador verdadero
+        # luego, recorrer cada opcion para actualizar porcentaje y ganador
         options = session.query(ResultsPerOption) \
                          .filter_by(
                              idVotingConfig    = voting_config_id,
@@ -5974,75 +6144,40 @@ def updateVoteCount(voting_config_id: int, question_id: int, option_id: int):
                          ).all()
 
         for opt in options:
+            # calcular porcentaje redondeado a dos decimales
             opt.votesPercentage = round((opt.votesCount / total_votes * 100) if total_votes else 0, 2)
+            # marcar ganador si coincide con max_votes y hay al menos un voto
             if opt.votesCount == max_votes and max_votes > 0:
                 opt.winner = True
 
-        session.commit()
+        session.commit()  # guarda todos los cambios en la base de datos
+
 ```
 </details>
 
+
+
 <details>
-	<summary>Ver get_key_name</summary>
+	<summary>Ver mark_token_used</summary>
+ 
 
  ```python
+
+from datetime import datetime
+from sqlalchemy import update
 from database import SessionLocal
-from Models.votar.models import EncryptionKey
+from Models.votar.models import BlindToken
 
-
-    
-def get_key_name(user_id: int) -> str | None:
+def mark_token_used(token: str):
     with SessionLocal() as session:
-        key_entry = (
-            session.query(EncryptionKey)
-                   .filter(
-                       EncryptionKey.userid == user_id,
-                       EncryptionKey.enable == True
-                   )
-                   .order_by(EncryptionKey.creationDate.desc())
-                   .first()
+        stmt = (
+            update(BlindToken)
+            .where(BlindToken.idToken == token)
+            .values(used=True, usedDate=datetime.utcnow())
         )
-    if key_entry:
-        return key_entry.key
-    return None
-```
-</details>
+        session.execute(stmt)
+        session.commit()
 
-<details>
-	<summary>Ver encrypt_with_user_key</summary>
-
- ```python
-
-from sqlalchemy import text
-from database import SessionLocal
-
-
-
-
-def encrypt_with_user_key(user_id: int, key_name: str, password: str, texto_a_encriptar: str) -> bytes:
-    with SessionLocal() as session:
-        # key_name = get_key_name_for_user_orm(session, user_id)
-        if not key_name:
-            raise Exception(f"No se encontró llave activa para user_id {user_id}")
-        try:
-            # 1) Abrir la llave con la contraseña *inline*
-            sql_open = f"OPEN SYMMETRIC KEY [{key_name}] DECRYPTION BY PASSWORD = '{password}'"
-            session.execute(text(sql_open))
-        except:
-            raise Exception(f"No se logro abrir la llave con la contraseña {password}")
-
-
-        # 2) Encriptar
-        row = session.execute(
-            text(f"SELECT ENCRYPTBYKEY(KEY_GUID('{key_name}'), :texto) AS Encrypted"),
-            {"texto": texto_a_encriptar}
-        ).fetchone()
-        encrypted_bytes = row.Encrypted
-
-        # 3) Cerrar llave
-        session.execute(text(f"CLOSE SYMMETRIC KEY [{key_name}]"))
-
-        return encrypted_bytes
 ```
 </details>
 
@@ -6053,8 +6188,8 @@ def encrypt_with_user_key(user_id: int, key_name: str, password: str, texto_a_en
 
 {
     "auth": {
-        "cedula": 326102758, // 1: 326102758 2: 541101101 3: 282869978 4: 205332829 5: 367692370
-        "password": "Superclave@1", // 1: Superclave@1 2: Superclave@2 3: Superclave@3 4: Superclave@4 5: Superclave@5
+        "cedula": 326102758,
+        "password": "clave1",
         "mfa": {
             "method": "totp",
             "code": "482915"
@@ -6096,8 +6231,8 @@ def encrypt_with_user_key(user_id: int, key_name: str, password: str, texto_a_en
 
 {
     "auth": {
-        "cedula": 326102758, // 1: 326102758 2: 541101101 3: 282869978 4: 205332829 5: 367692370
-        "password": "Superclave@1", // 1: Superclave@1 2: Superclave@2 3: Superclave@3 4: Superclave@4 5: Superclave@5
+        "cedula": 326102758,
+        "password": "clave1",
         "mfa": {
             "method": "totp",
             "code": "482915"
