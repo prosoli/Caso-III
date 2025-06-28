@@ -1112,7 +1112,7 @@ INSERT INTO [dbo].[vpv_statusVoting]
 
 Puede acceder al dashboard principal en Power BI mediante el siguiente enlace embebido:
 
-[Dashboard de Votaciones - Power BI](https://app.powerbi.com/reportEmbed?reportId=56d22684-d572-4fec-a32f-35f3be5be30e&autoAuth=true&ctid=bfcf1d9d-93ea-43b1-b902-1daa68a64248)
+[Dashboard de Votaciones - Power BI](https://app.powerbi.com/reportEmbed?reportId=d30b0045-f893-4230-b25f-57ded5242c61&autoAuth=true&ctid=bfcf1d9d-93ea-43b1-b902-1daa68a64248)
 
 
 <details>
