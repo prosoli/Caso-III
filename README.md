@@ -41,7 +41,7 @@ El Micitt debe presentar un prototipo de Voto Pura Vida a los poderes de la rep�
 🌎 [Ir al DashBoard de consulta](#dashboard-de-consulta)
 
 ---
-## Diseño SQL
+## 📌 Diseño SQL
 <details>
   <summary>Desplegar información</summary>
 
@@ -1115,7 +1115,7 @@ INSERT INTO [dbo].[vpv_statusVoting]
 </details>
 
 
-## Dashboard de Consulta
+## 📊 Dashboard de Consulta
 
 Puede acceder al dashboard principal en Power BI mediante el siguiente enlace embebido:
 
@@ -1426,7 +1426,7 @@ Estas vistas son esenciales para alimentar el dashboard y asegurar que se muestr
 </details>
 
 
-## Implementación del API
+## 📄 Implementación del API
 <details>
   <summary>Desplegar información</summary>
 
@@ -1584,7 +1584,9 @@ Esta estructura permite mantener el código organizado, separando claramente las
 
 </details>
 
-  ### Endpoints implementados por Stored Procedures
+---
+
+  ## ⚪ Endpoints implementados por Stored Procedures
 
 Los endpoints de esta sección utilizan procedimientos almacenados (Stored Procedures) en SQL Server para ejecutar la lógica del sistema directamente desde la base de datos. Esta estrategia permite manejar operaciones complejas de forma eficiente, segura y con control transaccional.
 
@@ -4817,11 +4819,11 @@ EXEC [dbo].[vpvSP_RepartirDividendos]
 
   </details>
 
-## Endpoints implementados por ORM
+## 🟣 Endpoints implementados por ORM
 
 Los endpoints implementados mediante **ORM (Object-Relational Mapping)** permiten interactuar con la base de datos de forma más abstracta y orientada a objetos. En lugar de escribir directamente consultas SQL, se trabajan con clases y objetos que representan las tablas y registros de la base de datos. Esto facilita el desarrollo, mantenimiento y escalabilidad del código.
 
-### SQLAlchemy: La herramienta principal
+### ⚗️ SQLAlchemy: La herramienta principal
 
 Para esta implementación se utiliza **SQLAlchemy**, una biblioteca popular en Python para el manejo de bases de datos relacionales. SQLAlchemy proporciona:
 
