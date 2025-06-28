@@ -53,11 +53,6 @@ Por otro lado, se presenta el script de creación de la base de datos, con el cu
 
 🗄️[Script de creacion de la base de datos](./Diseño%20de%20la%20base%20de%20datos/scriptcreacion.sql)
 
-
-```sql
-    
-      colocarlo al final
-```
 </details>
 </details>
 
