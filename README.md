@@ -1528,6 +1528,8 @@ pip install azure-functions pyodbc sqlalchemy
 
 - Herramientas para probar API: como Postman o Thunder Client (extensión VS Code).
 
+</details>
+
 ### Estructura del Proyecto Azure API
 
 <details>
@@ -1597,6 +1599,7 @@ Herramientas utilizadas
 - Thunder Client o Postman: para probar los endpoints HTTP de forma local.
 
   ---
+
 <details>
 <summary>Ver endpoints</summary>
 
@@ -4330,6 +4333,7 @@ def repartir_dividendos(req: func.HttpRequest) -> func.HttpResponse:
 ```
 </details>
 
+
 ---
 
 <details>
@@ -4811,6 +4815,8 @@ EXEC [dbo].[vpvSP_RepartirDividendos]
     
   </details>
 
+  </details>
+
 ## Endpoints implementados por ORM
 
 Los endpoints implementados mediante **ORM (Object-Relational Mapping)** permiten interactuar con la base de datos de forma más abstracta y orientada a objetos. En lugar de escribir directamente consultas SQL, se trabajan con clases y objetos que representan las tablas y registros de la base de datos. Esto facilita el desarrollo, mantenimiento y escalabilidad del código.
@@ -4851,6 +4857,7 @@ Este enfoque permite un desarrollo robusto, seguro y eficiente de la API, favore
 
   
   ---
+  
   <details>
   <summary>Ver Endpoints</summary>
 
@@ -5960,15 +5967,14 @@ def encrypt_with_user_key(user_id: int, key_name: str, password: str, texto_a_en
 }
 
 ```
-
 </details>
 
-   
-  </details>
-
+</details>
+	
 ### Listar Votos
 
 <details>
+
   <summary>Desplegar información</summary>
 
 Este endpoint permite obtener los **últimos 5 votos** emitidos por un usuario, a partir de su número de identificación (cédula, pasaporte o licencia). La función garantiza la seguridad mediante **desencriptado simétrico**, validación de identidad y verificación de múltiples condiciones antes de recuperar los datos.
@@ -6201,7 +6207,6 @@ def ListarVotos(req: func.HttpRequest) -> func.HttpResponse:
         session.close()  # Cierra la conexión con la base de datos
 ```
 
-</details>
 </details>
 
 </details> 
