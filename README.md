@@ -34,7 +34,7 @@ El Micitt debe presentar un prototipo de Voto Pura Vida a los poderes de la rep�
 
 🌎 [Ir al Implementación del API](#implementación-del-api)
 
-🌎 [Endpoints implementados por Stored Procedures](#-⚪-endpoints-implementados-por-stored-procedures)
+🌎 [Endpoints implementados por Stored Procedures](#endpoints-implementados-por-stored-procedures)
 
 🌎 [Endpoints implementados por ORM](#endpoints-implementados-por-orm)
 
@@ -1426,7 +1426,7 @@ Estas vistas son esenciales para alimentar el dashboard y asegurar que se muestr
 </details>
 
 
-## 📄 Implementación del API
+## Implementación del API
 <details>
   <summary>Desplegar información</summary>
 
@@ -1586,7 +1586,7 @@ Esta estructura permite mantener el código organizado, separando claramente las
 
 ---
 
-  ## ⚪ Endpoints implementados por Stored Procedures
+  ## Endpoints implementados por Stored Procedures
 
 Los endpoints de esta sección utilizan procedimientos almacenados (Stored Procedures) en SQL Server para ejecutar la lógica del sistema directamente desde la base de datos. Esta estrategia permite manejar operaciones complejas de forma eficiente, segura y con control transaccional.
 
@@ -4819,9 +4819,9 @@ EXEC [dbo].[vpvSP_RepartirDividendos]
 
   </details>
 
-## 🟣 Endpoints implementados por ORM
+## Endpoints implementados por ORM
 
-Los endpoints implementados mediante **ORM (Object-Relational Mapping)** permiten interactuar con la base de datos de forma más abstracta y orientada a objetos. En lugar de escribir directamente consultas SQL, se trabajan con clases y objetos que representan las tablas y registros de la base de datos. Esto facilita el desarrollo, mantenimiento y escalabilidad del código.
+Los s implementados mediante **ORM (Object-Relational Mapping)** permiten interactuar con la base de datos de forma más abstracta y orientada a objetos. En lugar de escribir directamente consultas SQL, se trabajan con clases y objetos que representan las tablas y registros de la base de datos. Esto facilita el desarrollo, mantenimiento y escalabilidad del código.
 
 ### ⚗️ SQLAlchemy: La herramienta principal
 
@@ -4832,7 +4832,7 @@ Para esta implementación se utiliza **SQLAlchemy**, una biblioteca popular en P
 - **Consultas expresivas**: ofrece una API para construir consultas complejas sin necesidad de escribir SQL manualmente, lo que reduce errores y mejora la legibilidad.
 - **Compatibilidad con múltiples motores de bases de datos**, aunque en este proyecto se conecta a un servidor SQL Server.
 
-### Ventajas de usar ORM en los endpoints
+### Ventajas de usar ORM en los s
 
 - **Abstracción del acceso a datos**: el desarrollador trabaja con objetos y métodos, no con sentencias SQL.
 - **Control de transacciones**: las sesiones permiten garantizar la atomicidad y consistencia mediante commits y rollbacks automáticos o manuales.
@@ -4841,11 +4841,11 @@ Para esta implementación se utiliza **SQLAlchemy**, una biblioteca popular en P
 
 ### Otras herramientas usadas en conjunto
 
-- **Azure Functions**: plataforma serverless que permite desplegar funciones HTTP como endpoints del API, manejando la lógica de negocio de forma distribuida y escalable.
+- **Azure Functions**: plataforma serverless que permite desplegar funciones HTTP como s del API, manejando la lógica de negocio de forma distribuida y escalable.
 - **dotenv**: biblioteca para cargar variables de entorno desde archivos `.env`, facilitando la configuración y seguridad (por ejemplo, para claves o cadenas de conexión).
 - **Python estándar**: para el manejo de JSON, logging y procesamiento de las solicitudes HTTP.
 
-### Flujo general en los endpoints ORM
+### Flujo general en los s ORM
 
 1. **Recepción de la solicitud HTTP** con datos en formato JSON.
 2. **Validación de permisos y datos de entrada** para garantizar que el usuario pueda realizar la acción y que los datos sean correctos.
